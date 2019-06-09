@@ -11,7 +11,7 @@ import pysc2
 import numpy
 import Bots
 
-from Bots.MoveToBeacon import MoveToBeacon
+from Bots.MoveToBeacon import MoveToBeacon, GenerateMoveToBeaconTestData
 from Bots.Overmind.Overmindx00 import Overmindx00
 
 from pysc2.agents import base_agent
@@ -22,7 +22,7 @@ from absl import app
 
 def main(unused_argv):
     #Agent
-    agent = MoveToBeacon()
+    agent = GenerateMoveToBeaconTestData()
     try: 
         while True:
             with sc2_env.SC2Env(False,
@@ -39,13 +39,13 @@ def main(unused_argv):
                     #More indepth unit information
                     use_feature_units=True),
                 #Steps default is 8 per frame (168APM)
-                step_mul=100,
+                step_mul=150,
                 #Max steps per game (0 is infinite)
                 game_steps_per_episode=0,
                 #visualize pysc2 input layers 
-                visualize=True, 
+                visualize=False, 
                 #Real-time gameplay
-                realtime=True, 
+                realtime=False, 
                 #Fog of War
                 disable_fog=False
            ) as env:
