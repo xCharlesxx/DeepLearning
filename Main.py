@@ -13,6 +13,7 @@ import Bots
 
 from Bots.MoveToBeacon import MoveToBeacon, GenerateMoveToBeaconTestData
 from Bots.Overmind.Overmindx00 import Overmindx00
+from DeepNetwork import build_knet
 
 from pysc2.agents import base_agent
 from pysc2.env import sc2_env, run_loop
@@ -21,8 +22,9 @@ from pysc2.lib import actions, features, units
 from absl import app
 
 def main(unused_argv):
+    build_knet(24, 24, 0.2)
     #Agent
-    agent = GenerateMoveToBeaconTestData()
+    agent = MoveToBeacon()
     try: 
         while True:
             with sc2_env.SC2Env(False,
@@ -45,7 +47,7 @@ def main(unused_argv):
                 #visualize pysc2 input layers 
                 visualize=False, 
                 #Real-time gameplay
-                realtime=False, 
+                realtime=True, 
                 #Fog of War
                 disable_fog=False
            ) as env:

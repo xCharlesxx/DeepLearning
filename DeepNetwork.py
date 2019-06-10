@@ -12,6 +12,7 @@ from keras.callbacks import TensorBoard
 
 import numpy as np 
 import os 
+import csv
 import random
 
 #Keras
@@ -20,7 +21,7 @@ import random
 def build_knet(shapex, shapey, dropout):
     model = Sequential()
     model.add(Conv2D(32, (3, 3), padding='same',
-                     input_shape=(shapex, shapey),
+                     input_shape=(24, 24, 1),
                      activation='relu'))
     model.add(Conv2D(32, (3, 3), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
@@ -56,7 +57,46 @@ def build_knet(shapex, shapey, dropout):
     tensorboard = TensorBoard(log_dir='logs/stage1')
 
     training_data_dir = "training_data"
+    epochs = 30
 
+
+    current = 0 
+    all_files = os.listdir(training_data_dir)
+    inputs = []
+    outputs = []
+
+    for file in all_files:
+        #print("Currently learning {}".format(current))
+        full_path = os.path.join(training_data_dir,str(current)+'.csv')
+        # Extract file code
+        with open (full_path) as csv_file:
+            reader = csv.reader(csv_file)
+            count = 0
+            for row in reader:
+                if count == 0:
+                    inputs.append(np.reshape(row,(-1,24)))
+                if count == 2:
+                    outputs.append(row)
+                count+=1
+            current+=1
+
+    train_data = inputs + outputs
+    batch_size = 1
+    inputs = np.expand_dims(inputs, axis=3)
+    #xtrain = inputs ytrain = outputs
+    xtest = np.array(inputs[:int(len(inputs)*0.1)])
+    ytest = np.array(outputs[:int(len(outputs)*0.1)])
+
+    xtrain = np.array(inputs[int(len(inputs)*0.1):])
+    ytrain = np.array(outputs[int(len(outputs)*0.1):])
+
+    model.fit(xtrain, ytrain, 
+                batch_size=batch_size,
+                epochs=epochs,
+                validation_data=(xtest,ytest), 
+                shuffle=False, verbose=1, callbacks=[tensorboard])
+
+    model.save("MoveToBeaconCNN-{}-epochs-{}-batches-Attempt2".format(epochs, batch_size))
 
     return 0
 

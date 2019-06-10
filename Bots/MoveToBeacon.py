@@ -23,6 +23,7 @@ import random
 from absl import app
 
 class MoveToBeacon(base_agent.BaseAgent):
+    loaded = False
         #Pysc2 defs
     def get_obs(self, obs):
         return {self.screen: obs['screen'],
@@ -61,69 +62,47 @@ class MoveToBeacon(base_agent.BaseAgent):
         self.train_step = int(ckpt.model_checkpoint_path.split('-')[-1])
         print("Load agent at step %d" % self.train_step)
 
+    def loadK(self, path):
+        self.model = ks.models.load_model(path)
+
     def step(self, obs):
         super(MoveToBeacon, self).step(obs)
 
-        config = tf.ConfigProto(allow_soft_placement=True)
-        config.gpu_options.allow_growth = True
-        sess = tf.Session(config=config)
+        if MoveToBeacon.loaded == False:
+            self.loadK("MoveToBeaconCNN-10-epochs-Attempt2")
+            MoveToBeacon.loaded = True
 
-        #input = self.get_obs(obs) 7x64x64
-
-        #x = input[1]
-        #y = input[2]
-        #xc = x[::2]
-        #yc = y[::2]
-        #xyc = (xc,yc)
-        #for y in obs.observation.feature_minimap:
-        input = obs.observation.feature_minimap[5]
-        stencil = obs.observation.feature_minimap[3]
-        newInput = [0] * 576
-        counter = 0
-        for numx, x in enumerate(stencil):
-            for numy, y in enumerate(x): 
-                if (y == 1):
-                    newInput[counter] = input[numx][numy]
-                    counter+=1
-
-
-        for x in input:
-                #xc = x[::2]
-                output = ""
-                for i in x:
-                    output+=str(i)
-                    output+=" "
-                print(output)
-        print("\n")
-
-
-        counter = 0
-        output = ""
-        for x in newInput:
-            output+=str(x)
-            output+=" "
-            counter+=1 
-            if (counter == 12):
-                print(output)
-                output = ""
-                counter = 0
-
-        
-
-            #output+="\n"
-
-        #pprint(output)
-        #output+=str(yc)
-        #model.fit(inputx, inputy, epochs=3)
-        outputx = 0 
-        outputy = 0
-        #Reward = objectives completed since last step
-        reward = obs.reward
-
-
+        #If maring is selected, use DNN
         if self.unit_type_is_selected(obs, units.Terran.Marine):
-            if self.can_do(obs, actions.FUNCTIONS.Attack_minimap.id):
-                return actions.FUNCTIONS.Attack_minimap("now", (outputx,outputy))
+            if self.can_do(obs, actions.FUNCTIONS.Attack_screen.id):
+                input = obs.observation.feature_minimap[5]
+                stencil = obs.observation.feature_minimap[3]
+                newInput = numpy.zeros((24,24),int)
+                counterx = 0
+                countery = 0
+                for numx, x in enumerate(stencil):
+                    for numy, y in enumerate(x): 
+                        if (y == 1):
+                            newInput[counterx][countery] = input[numx][numy]
+                            counterx+=1
+                        if (counterx == 24):
+                            countery+=1
+                            counterx=0
+
+                for x in newInput:
+                        output = ""
+                        for i in x:
+                            output+=str(i)
+                            output+=" "
+                        print(output)
+                print("\n")
+
+                newInput = numpy.expand_dims(newInput, axis=2)
+                prediction = self.model.predict([newInput.reshape([-1,24,24,1])])
+                outputx = prediction[0][0] * 80
+                outputy = prediction[0][1] * 80
+                print('Network Predicts: {},{}'.format(outputx,outputy))
+                return actions.FUNCTIONS.Attack_screen("now", (outputx,outputy))
         #Select Marine
         else: 
             marine = self.get_units_by_type(obs, units.Terran.Marine)
@@ -138,7 +117,7 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
         #Pysc2 defs
     packagedInput = numpy.empty((24*24), int)
     packagedOutput = numpy.empty(2, float)
-    packageCounter = 0
+    packageCounter = 1017
     def get_obs(self, obs):
         return {self.screen: obs['screen'],
                 self.available_actions: obs['available_actions']}
@@ -173,6 +152,17 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
 
         #If previous action was successful, record as training data
         if obs.reward > 0:
+            #counter = 0
+            #output = ""
+            #for x in GenerateMoveToBeaconTestData.packagedInput:
+            #    output+=str(x)
+            #    output+=" "
+            #    counter+=1 
+            #    if (counter == 24):
+            #        print(output)
+            #        output = ""
+            #        counter = 0
+            #print(GenerateMoveToBeaconTestData.packagedOutput)
             fileName = 'training_data/' + str(GenerateMoveToBeaconTestData.packageCounter) + '.csv'
             with open(fileName, mode='w') as file:
                 writer = csv.writer(file)
