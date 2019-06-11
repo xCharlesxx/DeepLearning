@@ -69,26 +69,41 @@ class MoveToBeacon(base_agent.BaseAgent):
         super(MoveToBeacon, self).step(obs)
 
         if MoveToBeacon.loaded == False:
-            self.loadK("MoveToBeaconCNN-10-epochs-Attempt2")
+            self.loadK("MoveToBeaconCNN-30-epochs-1-batches-Attempt2")
             MoveToBeacon.loaded = True
 
         #If maring is selected, use DNN
         if self.unit_type_is_selected(obs, units.Terran.Marine):
             if self.can_do(obs, actions.FUNCTIONS.Attack_screen.id):
+
                 input = obs.observation.feature_minimap[5]
                 stencil = obs.observation.feature_minimap[3]
                 newInput = numpy.zeros((24,24),int)
                 counterx = 0
                 countery = 0
-                for numx, x in enumerate(stencil):
-                    for numy, y in enumerate(x): 
-                        if (y == 1):
-                            newInput[counterx][countery] = input[numx][numy]
+                for numy, y in enumerate(stencil):
+                    for numx, x in enumerate(y): 
+                        if (x == 1):
+                            newInput[countery][counterx] = input[numy][numx]
                             counterx+=1
                         if (counterx == 24):
                             countery+=1
                             counterx=0
 
+                for x in stencil:
+                        output = ""
+                        for i in x:
+                            output+=str(i)
+                            output+=""
+                        print(output)
+                print("\n")
+                for x in input:
+                        output = ""
+                        for i in x:
+                            output+=str(i)
+                            output+=""
+                        print(output)
+                print("\n")
                 for x in newInput:
                         output = ""
                         for i in x:
@@ -99,8 +114,8 @@ class MoveToBeacon(base_agent.BaseAgent):
 
                 newInput = numpy.expand_dims(newInput, axis=2)
                 prediction = self.model.predict([newInput.reshape([-1,24,24,1])])
-                outputx = prediction[0][0] * 80
-                outputy = prediction[0][1] * 80
+                outputx = prediction[0][1] * 80
+                outputy = prediction[0][0] * 80
                 print('Network Predicts: {},{}'.format(outputx,outputy))
                 return actions.FUNCTIONS.Attack_screen("now", (outputx,outputy))
         #Select Marine
@@ -115,9 +130,9 @@ class MoveToBeacon(base_agent.BaseAgent):
 
 class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
         #Pysc2 defs
-    packagedInput = numpy.empty((24*24), int)
+    packagedInput = numpy.zeros((24,24),int)
     packagedOutput = numpy.empty(2, float)
-    packageCounter = 1017
+    packageCounter = 0
     def get_obs(self, obs):
         return {self.screen: obs['screen'],
                 self.available_actions: obs['available_actions']}
@@ -163,7 +178,7 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
             #        output = ""
             #        counter = 0
             #print(GenerateMoveToBeaconTestData.packagedOutput)
-            fileName = 'training_data/' + str(GenerateMoveToBeaconTestData.packageCounter) + '.csv'
+            fileName = 'training_data1/' + str(GenerateMoveToBeaconTestData.packageCounter) + '.csv'
             with open(fileName, mode='w') as file:
                 writer = csv.writer(file)
                 writer.writerow(GenerateMoveToBeaconTestData.packagedInput)
@@ -174,14 +189,18 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
         input = obs.observation.feature_minimap[5]
         stencil = obs.observation.feature_minimap[3]
         #24x24 is refined input data size
-        newInput = [0] * (24*24)
-        counter = 0
-        #Use camera stencil to grab relevent data
-        for numx, x in enumerate(stencil):
-            for numy, y in enumerate(x): 
-                if (y == 1):
-                    newInput[counter] = input[numx][numy]
-                    counter+=1
+        #Use camera stencil to grab relevent data   
+        newInput = numpy.zeros((24,24),int)
+        counterx = 0
+        countery = 0
+        for numy, y in enumerate(stencil):
+            for numx, x in enumerate(y): 
+                if (x == 1):
+                    newInput[countery][counterx] = input[numy][numx]
+                    counterx+=1
+                if (counterx == 24):
+                    countery+=1
+                    counterx=0
 
 
         #Screen is not 80x80 but ~80x60 but 80x80 for simplicity

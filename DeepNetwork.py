@@ -74,7 +74,7 @@ def build_knet(shapex, shapey, dropout):
             count = 0
             for row in reader:
                 if count == 0:
-                    inputs.append(np.reshape(row,(-1,24)))
+                    inputs.append(row)
                 if count == 2:
                     outputs.append(row)
                 count+=1
