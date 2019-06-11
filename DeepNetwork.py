@@ -13,6 +13,8 @@ from keras.callbacks import TensorBoard
 import numpy as np 
 import os 
 import csv
+import ast
+import re
 import random
 
 #Keras
@@ -56,32 +58,37 @@ def build_knet(shapex, shapey, dropout):
 
     tensorboard = TensorBoard(log_dir='logs/stage1')
 
-    training_data_dir = "training_data"
+    training_data_dir = "training_data1"
     epochs = 30
 
 
-    current = 0 
-    all_files = os.listdir(training_data_dir)
-    inputs = []
-    outputs = []
 
+    all_files = os.listdir(training_data_dir)
+    all_files_size = len([num for num in all_files])
+    inputs=[]
+    outputs=[]
+    counter = 0
+    print('Extracting files...')
     for file in all_files:
-        #print("Currently learning {}".format(current))
-        full_path = os.path.join(training_data_dir,str(current)+'.csv')
+        print("{}/{}".format(counter,all_files_size), end='\r')
+        counter+=1
+        full_path = os.path.join(training_data_dir,file)
         # Extract file code
         with open (full_path) as csv_file:
             reader = csv.reader(csv_file)
             count = 0
             for row in reader:
                 if count == 0:
-                    inputs.append(row)
+                    inputrow =[]
+                    for rowseg in row:
+                        inputrow.append(ast.literal_eval(re.sub(r'(\d?)(?:\r\n)*\s+', r'\1, ', rowseg)))
+                    inputs.append(inputrow)
                 if count == 2:
                     outputs.append(row)
                 count+=1
-            current+=1
 
-    train_data = inputs + outputs
-    batch_size = 1
+    inputs = np.reshape(inputs, (-1,24,24))
+    batch_size = 10
     inputs = np.expand_dims(inputs, axis=3)
     #xtrain = inputs ytrain = outputs
     xtest = np.array(inputs[:int(len(inputs)*0.1)])
@@ -90,14 +97,16 @@ def build_knet(shapex, shapey, dropout):
     xtrain = np.array(inputs[int(len(inputs)*0.1):])
     ytrain = np.array(outputs[int(len(outputs)*0.1):])
 
+    #xtrain = np.reshape(xtrain, (-1,24,24,1))
+
     model.fit(xtrain, ytrain, 
                 batch_size=batch_size,
                 epochs=epochs,
                 validation_data=(xtest,ytest), 
                 shuffle=False, verbose=1, callbacks=[tensorboard])
 
-    model.save("MoveToBeaconCNN-{}-epochs-{}-batches-Attempt2".format(epochs, batch_size))
-
+    model.save("MoveToBeaconCNN-{}-epochs-{}-batches-{}-dataSetSize".format(epochs, batch_size, all_files_size))
+    print('Finished Training')
     return 0
 
 #Tensorflow

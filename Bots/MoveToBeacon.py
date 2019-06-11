@@ -69,7 +69,7 @@ class MoveToBeacon(base_agent.BaseAgent):
         super(MoveToBeacon, self).step(obs)
 
         if MoveToBeacon.loaded == False:
-            self.loadK("MoveToBeaconCNN-30-epochs-1-batches-Attempt2")
+            self.loadK("MoveToBeaconCNN-30-epochs-10-batches-5504-dataSetSize")
             MoveToBeacon.loaded = True
 
         #If maring is selected, use DNN
@@ -90,20 +90,20 @@ class MoveToBeacon(base_agent.BaseAgent):
                             countery+=1
                             counterx=0
 
-                for x in stencil:
-                        output = ""
-                        for i in x:
-                            output+=str(i)
-                            output+=""
-                        print(output)
-                print("\n")
-                for x in input:
-                        output = ""
-                        for i in x:
-                            output+=str(i)
-                            output+=""
-                        print(output)
-                print("\n")
+                #for x in stencil:
+                #        output = ""
+                #        for i in x:
+                #            output+=str(i)
+                #            output+=""
+                #        print(output)
+                #print("\n")
+                #for x in input:
+                #        output = ""
+                #        for i in x:
+                #            output+=str(i)
+                #            output+=""
+                #        print(output)
+                #print("\n")
                 for x in newInput:
                         output = ""
                         for i in x:
@@ -114,8 +114,8 @@ class MoveToBeacon(base_agent.BaseAgent):
 
                 newInput = numpy.expand_dims(newInput, axis=2)
                 prediction = self.model.predict([newInput.reshape([-1,24,24,1])])
-                outputx = prediction[0][1] * 80
-                outputy = prediction[0][0] * 80
+                outputx = prediction[0][0] * 80
+                outputy = prediction[0][1] * 80
                 print('Network Predicts: {},{}'.format(outputx,outputy))
                 return actions.FUNCTIONS.Attack_screen("now", (outputx,outputy))
         #Select Marine
@@ -132,7 +132,7 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
         #Pysc2 defs
     packagedInput = numpy.zeros((24,24),int)
     packagedOutput = numpy.empty(2, float)
-    packageCounter = 0
+    packageCounter = 1364
     def get_obs(self, obs):
         return {self.screen: obs['screen'],
                 self.available_actions: obs['available_actions']}
