@@ -58,7 +58,7 @@ def build_knet(shapex, shapey, dropout):
 
     tensorboard = TensorBoard(log_dir='logs/stage1')
 
-    training_data_dir = "training_data1"
+    training_data_dir = "perfect_training_data"
     epochs = 30
 
 

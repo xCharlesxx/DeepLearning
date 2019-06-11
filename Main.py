@@ -22,9 +22,9 @@ from pysc2.lib import actions, features, units
 from absl import app
 
 def main(unused_argv):
-    build_knet(24, 24, 0.2)
+    #build_knet(24, 24, 0.2)
     #Agent
-    agent = MoveToBeacon()
+    agent = GenerateMoveToBeaconTestData()
     try: 
         while True:
             with sc2_env.SC2Env(False,
@@ -41,7 +41,7 @@ def main(unused_argv):
                     #More indepth unit information
                     use_feature_units=True),
                 #Steps default is 8 per frame (168APM)
-                step_mul=150,
+                step_mul=10,#175
                 #Max steps per game (0 is infinite)
                 game_steps_per_episode=0,
                 #visualize pysc2 input layers 

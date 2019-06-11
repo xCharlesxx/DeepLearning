@@ -69,7 +69,7 @@ class MoveToBeacon(base_agent.BaseAgent):
         super(MoveToBeacon, self).step(obs)
 
         if MoveToBeacon.loaded == False:
-            self.loadK("MoveToBeaconCNN-30-epochs-10-batches-5504-dataSetSize")
+            self.loadK("MoveToBeaconCNN-30-epochs-10-batches-5515-dataSetSize")
             MoveToBeacon.loaded = True
 
         #If maring is selected, use DNN
@@ -132,7 +132,7 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
         #Pysc2 defs
     packagedInput = numpy.zeros((24,24),int)
     packagedOutput = numpy.empty(2, float)
-    packageCounter = 1364
+    packageCounter = 11
     def get_obs(self, obs):
         return {self.screen: obs['screen'],
                 self.available_actions: obs['available_actions']}
@@ -178,7 +178,7 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
             #        output = ""
             #        counter = 0
             #print(GenerateMoveToBeaconTestData.packagedOutput)
-            fileName = 'training_data1/' + str(GenerateMoveToBeaconTestData.packageCounter) + '.csv'
+            fileName = 'perfect_training_data/' + str(GenerateMoveToBeaconTestData.packageCounter) + '.csv'
             with open(fileName, mode='w') as file:
                 writer = csv.writer(file)
                 writer.writerow(GenerateMoveToBeaconTestData.packagedInput)
@@ -201,11 +201,14 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
                 if (counterx == 24):
                     countery+=1
                     counterx=0
+        for unit in obs.observation.feature_units:
+            if(unit.unit_type == 317):
+                beacon = unit
 
 
         #Screen is not 80x80 but ~80x60 but 80x80 for simplicity
-        outputx = random.randint(0,80)
-        outputy = random.randint(0,80)
+        outputx = beacon.x #random.randint(0,80)
+        outputy = beacon.y #random.randint(0,80)
 
         GenerateMoveToBeaconTestData.packagedInput = newInput
         #/80 to get a number between 0 and 1 as outputs for DNN
