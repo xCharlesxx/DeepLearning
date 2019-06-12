@@ -20,48 +20,54 @@ import random
 #Keras
 #Shape = Shape of input data
 #Dropout = Fraction rate of input inits to 0 at each update during training time, which prevents overfitting (0-1)
-def build_knet(shapex, shapey, dropout):
+def build_knet(shapex, shapey):
+
+    dropout = 0.2
+    learning_rate = 1e-4
+    decay = 1e-6
+    loss_function = 'mean_squared_error'
+    metrics = 'accuracy'
+    epochs = 1
+    batch_size = 1
+    verbose = 1
+    
+    training_data_dir = "perfect_training_data"
+    tensorboard = TensorBoard(log_dir='logs/stage1')
+    
+
     model = Sequential()
     model.add(Conv2D(32, (3, 3), padding='same',
                      input_shape=(24, 24, 1),
                      activation='relu'))
     model.add(Conv2D(32, (3, 3), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(dropout))
+   # model.add(Dropout(dropout))
 
     model.add(Conv2D(64, (3, 3), padding='same',
                      activation='relu'))
     model.add(Conv2D(64, (3, 3), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(dropout))
+    #model.add(Dropout(dropout))
 
     model.add(Conv2D(128, (3, 3), padding='same',
                      activation='relu'))
     model.add(Conv2D(128, (3, 3), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(dropout))
+   # model.add(Dropout(dropout))
 
     model.add(Flatten())
     model.add(Dense(512, activation='relu'))
-    model.add(Dropout(dropout + 0.3))
+    #model.add(Dropout(dropout + 0.3))
 
     #Output Layer
     model.add(Dense(2, activation='softmax'))
 
-    learning_rate = 1e-4
-    decay = 1e-6
+
     opt = keras.optimizers.adam(lr=learning_rate, decay=decay)
 
-    model.compile(loss='categorical_crossentropy', 
+    model.compile(loss=loss_function, 
                   optimizer=opt, 
-                  metrics=['accuracy'])
-
-    tensorboard = TensorBoard(log_dir='logs/stage1')
-
-    training_data_dir = "perfect_training_data"
-    epochs = 30
-
-
+                  metrics=[metrics])
 
     all_files = os.listdir(training_data_dir)
     all_files_size = len([num for num in all_files])
@@ -70,7 +76,7 @@ def build_knet(shapex, shapey, dropout):
     counter = 0
     print('Extracting files...')
     for file in all_files:
-        print("{}/{}".format(counter,all_files_size), end='\r')
+        print("{}/{}".format(counter+1,all_files_size), end='\r')
         counter+=1
         full_path = os.path.join(training_data_dir,file)
         # Extract file code
@@ -88,7 +94,6 @@ def build_knet(shapex, shapey, dropout):
                 count+=1
 
     inputs = np.reshape(inputs, (-1,24,24))
-    batch_size = 10
     inputs = np.expand_dims(inputs, axis=3)
     #xtrain = inputs ytrain = outputs
     xtest = np.array(inputs[:int(len(inputs)*0.1)])
@@ -103,9 +108,9 @@ def build_knet(shapex, shapey, dropout):
                 batch_size=batch_size,
                 epochs=epochs,
                 validation_data=(xtest,ytest), 
-                shuffle=False, verbose=1, callbacks=[tensorboard])
+                shuffle=False, verbose=verbose, callbacks=[tensorboard])
 
-    model.save("MoveToBeaconCNN-{}-epochs-{}-batches-{}-dataSetSize".format(epochs, batch_size, all_files_size))
+    model.save("NoDropout{}-{}-epochs-{}-batches-{}-dataSetSize".format(loss_function, epochs, batch_size, all_files_size))
     print('Finished Training')
     return 0
 
