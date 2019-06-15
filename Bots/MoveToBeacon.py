@@ -19,7 +19,8 @@ from pysc2.lib import actions, features, units
 
 import csv
 import random
-
+from decimal import Decimal
+from Constants import const
 from absl import app
 
 class MoveToBeacon(base_agent.BaseAgent):
@@ -69,8 +70,9 @@ class MoveToBeacon(base_agent.BaseAgent):
         super(MoveToBeacon, self).step(obs)
 
         if MoveToBeacon.loaded == False:
-            self.loadK("MoveToBeaconCNN-30-epochs-10-batches-5515-dataSetSize")
+            self.loadK("mean_squared_error-1-epochs-1-batches-157-dataSetSize")
             MoveToBeacon.loaded = True
+
 
         #If maring is selected, use DNN
         if self.unit_type_is_selected(obs, units.Terran.Marine):
@@ -78,7 +80,7 @@ class MoveToBeacon(base_agent.BaseAgent):
 
                 input = obs.observation.feature_minimap[5]
                 stencil = obs.observation.feature_minimap[3]
-                newInput = numpy.zeros((24,24),int)
+                newInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
                 counterx = 0
                 countery = 0
                 for numy, y in enumerate(stencil):
@@ -86,7 +88,7 @@ class MoveToBeacon(base_agent.BaseAgent):
                         if (x == 1):
                             newInput[countery][counterx] = input[numy][numx]
                             counterx+=1
-                        if (counterx == 24):
+                        if (counterx == const.InputSize()):
                             countery+=1
                             counterx=0
 
@@ -113,9 +115,10 @@ class MoveToBeacon(base_agent.BaseAgent):
                 print("\n")
 
                 newInput = numpy.expand_dims(newInput, axis=2)
-                prediction = self.model.predict([newInput.reshape([-1,24,24,1])])
-                outputx = prediction[0][0] * 80
-                outputy = prediction[0][1] * 80
+                newInput = newInput.reshape([-1,const.InputSize(),const.InputSize(),1])
+                prediction = self.model.predict(newInput)
+                outputx = prediction[0][0] * const.ScreenSize()
+                outputy = prediction[0][1] * const.ScreenSize()
                 print('Network Predicts: {},{}'.format(outputx,outputy))
                 return actions.FUNCTIONS.Attack_screen("now", (outputx,outputy))
         #Select Marine
@@ -130,9 +133,9 @@ class MoveToBeacon(base_agent.BaseAgent):
 
 class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
         #Pysc2 defs
-    packagedInput = numpy.zeros((24,24),int)
-    packagedOutput = numpy.empty(2, float)
-    packageCounter = 11
+    packagedInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
+    packagedOutput = numpy.empty(const.OutputSize(), float)
+    packageCounter = 150
     def get_obs(self, obs):
         return {self.screen: obs['screen'],
                 self.available_actions: obs['available_actions']}
@@ -173,15 +176,15 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
             #    output+=str(x)
             #    output+=" "
             #    counter+=1 
-            #    if (counter == 24):
+            #    if (counter == const.InputSize()):
             #        print(output)
             #        output = ""
             #        counter = 0
             #print(GenerateMoveToBeaconTestData.packagedOutput)
-            fileName = 'perfect_training_data/' + str(GenerateMoveToBeaconTestData.packageCounter) + '.csv'
-            with open(fileName, mode='w') as file:
+            fileName = 'training_data/' + str(GenerateMoveToBeaconTestData.packageCounter) + '.csv'
+            with open(fileName, mode='w', newline='') as file:
                 writer = csv.writer(file)
-                writer.writerow(GenerateMoveToBeaconTestData.packagedInput)
+                writer.writerows(GenerateMoveToBeaconTestData.packagedInput)
                 writer.writerow(GenerateMoveToBeaconTestData.packagedOutput)
             GenerateMoveToBeaconTestData.packageCounter+=1
 
@@ -190,7 +193,7 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
         stencil = obs.observation.feature_minimap[3]
         #24x24 is refined input data size
         #Use camera stencil to grab relevent data   
-        newInput = numpy.zeros((24,24),int)
+        newInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
         counterx = 0
         countery = 0
         for numy, y in enumerate(stencil):
@@ -198,21 +201,24 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
                 if (x == 1):
                     newInput[countery][counterx] = input[numy][numx]
                     counterx+=1
-                if (counterx == 24):
+                if (counterx == const.InputSize()):
                     countery+=1
                     counterx=0
+
+
         for unit in obs.observation.feature_units:
             if(unit.unit_type == 317):
                 beacon = unit
 
 
-        #Screen is not 80x80 but ~80x60 but 80x80 for simplicity
-        outputx = beacon.x #random.randint(0,80)
-        outputy = beacon.y #random.randint(0,80)
+        #Screen is not 84x84 but ~84x60 but 84x84 for simplicity
+        outputx = beacon.x #random.randint(0,const.ScreenSize())
+        outputy = beacon.y #random.randint(0,const.ScreenSize())
 
         GenerateMoveToBeaconTestData.packagedInput = newInput
-        #/80 to get a number between 0 and 1 as outputs for DNN
-        GenerateMoveToBeaconTestData.packagedOutput = [outputx/80, outputy/80]
+        #/84 to get a number between 0 and 1 as outputs for DNN
+        GenerateMoveToBeaconTestData.packagedOutput = [float(round(Decimal(outputx/const.ScreenSize()),2)),
+                                                       float(round(Decimal(outputy/const.ScreenSize()),2))]
         if self.unit_type_is_selected(obs, units.Terran.Marine):
             if self.can_do(obs, actions.FUNCTIONS.Attack_screen.id):
                 return actions.FUNCTIONS.Attack_screen("now", (outputx,outputy))

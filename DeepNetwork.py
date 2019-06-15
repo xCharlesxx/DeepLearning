@@ -16,59 +16,11 @@ import csv
 import ast
 import re
 import random
-
-#Keras
-#Shape = Shape of input data
-#Dropout = Fraction rate of input inits to 0 at each update during training time, which prevents overfitting (0-1)
-def build_knet(shapex, shapey):
-
-    dropout = 0.2
-    learning_rate = 1e-4
-    decay = 1e-6
-    loss_function = 'mean_squared_error'
-    metrics = 'accuracy'
-    epochs = 1
-    batch_size = 1
-    verbose = 1
-    
-    training_data_dir = "perfect_training_data"
-    tensorboard = TensorBoard(log_dir='logs/stage1')
-    
-
-    model = Sequential()
-    model.add(Conv2D(32, (3, 3), padding='same',
-                     input_shape=(24, 24, 1),
-                     activation='relu'))
-    model.add(Conv2D(32, (3, 3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-   # model.add(Dropout(dropout))
-
-    model.add(Conv2D(64, (3, 3), padding='same',
-                     activation='relu'))
-    model.add(Conv2D(64, (3, 3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    #model.add(Dropout(dropout))
-
-    model.add(Conv2D(128, (3, 3), padding='same',
-                     activation='relu'))
-    model.add(Conv2D(128, (3, 3), activation='relu'))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-   # model.add(Dropout(dropout))
-
-    model.add(Flatten())
-    model.add(Dense(512, activation='relu'))
-    #model.add(Dropout(dropout + 0.3))
-
-    #Output Layer
-    model.add(Dense(2, activation='softmax'))
+from decimal import Decimal
+from Constants import const
 
 
-    opt = keras.optimizers.adam(lr=learning_rate, decay=decay)
-
-    model.compile(loss=loss_function, 
-                  optimizer=opt, 
-                  metrics=[metrics])
-
+def get_training_data(training_data_dir):
     all_files = os.listdir(training_data_dir)
     all_files_size = len([num for num in all_files])
     inputs=[]
@@ -83,34 +35,104 @@ def build_knet(shapex, shapey):
         with open (full_path) as csv_file:
             reader = csv.reader(csv_file)
             count = 0
+            inputrows =[]
             for row in reader:
-                if count == 0:
-                    inputrow =[]
-                    for rowseg in row:
-                        inputrow.append(ast.literal_eval(re.sub(r'(\d?)(?:\r\n)*\s+', r'\1, ', rowseg)))
-                    inputs.append(inputrow)
-                if count == 2:
+                if count == const.InputSize():
                     outputs.append(row)
+                else:
+                    inputrows.append(row)
                 count+=1
+            inputs.append(inputrows)
 
-    inputs = np.reshape(inputs, (-1,24,24))
+    print("{}/{}".format(counter,all_files_size))
     inputs = np.expand_dims(inputs, axis=3)
-    #xtrain = inputs ytrain = outputs
-    xtest = np.array(inputs[:int(len(inputs)*0.1)])
-    ytest = np.array(outputs[:int(len(outputs)*0.1)])
 
-    xtrain = np.array(inputs[int(len(inputs)*0.1):])
-    ytrain = np.array(outputs[int(len(outputs)*0.1):])
+    inputs = np.reshape(inputs, (-1,const.InputSize(),const.InputSize(),1))
+    outputs = np.reshape(outputs, (-1,const.OutputSize()))
 
-    #xtrain = np.reshape(xtrain, (-1,24,24,1))
+    inputs = inputs.astype(np.int)
+    outputs = outputs.astype(np.float)
 
-    model.fit(xtrain, ytrain, 
+    return [inputs,outputs]
+
+
+#Keras
+#Shape = Shape of input data
+#Dropout = Fraction rate of input inits to 0 at each update during training time, which prevents overfitting (0-1)
+def build_knet(shapex, shapey):
+
+    dropout = 0.2
+    learning_rate = 1e-4
+    decay = 1e-6
+    padding = 'same'
+    loss_function = 'mean_squared_error'
+    metrics = 'accuracy'
+    epochs = 10
+    batch_size = 2
+    verbose = 1
+    #Percent of data to be split for validation
+    validation = 0.1
+    
+    training_data_dir = "training_data"
+    tensorboard = TensorBoard(log_dir='logs/stage1')
+    activation = 'tanh'
+
+    model = Sequential()
+    model.add(Conv2D(32, (3, 3), padding=padding,
+                     input_shape=(const.InputSize(), const.InputSize(), 1),
+                     activation=activation))
+    model.add(Conv2D(32, (3, 3), activation=activation))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+   # model.add(Dropout(dropout))
+
+    model.add(Conv2D(64, (3, 3), padding=padding,
+                     activation=activation))
+    model.add(Conv2D(64, (3, 3), activation=activation))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    #model.add(Dropout(dropout))
+
+    model.add(Conv2D(128, (3, 3), padding=padding,
+                     activation=activation))
+    model.add(Conv2D(128, (3, 3), activation=activation))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+   # model.add(Dropout(dropout))
+
+    model.add(Flatten())
+    model.add(Dense(512, activation=activation))
+    #model.add(Dropout(dropout + 0.3))
+
+    #Output Layer
+    model.add(Dense(2, activation='softmax'))
+
+    
+    opt = keras.optimizers.adam(lr=learning_rate, decay=decay)
+
+    model.compile(loss=loss_function, 
+                  optimizer=opt, 
+                  metrics=[metrics])
+
+    file_size = len([num for num in os.listdir(training_data_dir)])
+    TD = get_training_data(training_data_dir)
+    #for sets in range(0,50):
+        #print(inputs[sets])
+        #print(outputs[sets])
+
+    #xtrain = np.reshape(xtrain, (-1,const.InputSize(),const.InputSize(),1))
+
+    model.fit(TD[0], TD[1], 
                 batch_size=batch_size,
                 epochs=epochs,
-                validation_data=(xtest,ytest), 
+                validation_split=0.1, 
                 shuffle=False, verbose=verbose, callbacks=[tensorboard])
 
-    model.save("NoDropout{}-{}-epochs-{}-batches-{}-dataSetSize".format(loss_function, epochs, batch_size, all_files_size))
+    prediction = model.predict(TD[0])
+
+    for loop in range(0,150):
+        dec1 = np.around(prediction[loop][0],2)
+        dec2 = np.around(prediction[loop][1],2)
+        print(str([dec1,dec2]) + '      ' + str(TD[1][loop]))
+
+    model.save("{}-{}-epochs-{}-batches-{}-dataSetSize".format(loss_function, epochs, batch_size, file_size))
     print('Finished Training')
     return 0
 
