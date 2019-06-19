@@ -64,7 +64,7 @@ def build_knet(shapex, shapey):
     dropout = 0.2
     learning_rate = 1e-4
     decay = 1e-6
-    padding = 'same'
+    padding = 'valid'
     loss_function = 'mean_squared_error'
     metrics = 'accuracy'
     epochs = 10
@@ -85,16 +85,16 @@ def build_knet(shapex, shapey):
     model.add(MaxPooling2D(pool_size=(2, 2)))
    # model.add(Dropout(dropout))
 
-    model.add(Conv2D(64, (3, 3), padding=padding,
-                     activation=activation))
-    model.add(Conv2D(64, (3, 3), activation=activation))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    #model.add(Conv2D(64, (3, 3), padding=padding,
+    #                 activation=activation))
+    #model.add(Conv2D(64, (3, 3), activation=activation))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
     #model.add(Dropout(dropout))
 
-    model.add(Conv2D(128, (3, 3), padding=padding,
-                     activation=activation))
-    model.add(Conv2D(128, (3, 3), activation=activation))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    #model.add(Conv2D(128, (3, 3), padding=padding,
+    #                 activation=activation))
+    #model.add(Conv2D(128, (3, 3), activation=activation))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
    # model.add(Dropout(dropout))
 
     model.add(Flatten())
