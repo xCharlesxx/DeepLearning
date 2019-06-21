@@ -70,7 +70,7 @@ class MoveToBeacon(base_agent.BaseAgent):
         super(MoveToBeacon, self).step(obs)
 
         if MoveToBeacon.loaded == False:
-            self.loadK("mean_squared_error-1-epochs-1-batches-157-dataSetSize")
+            self.loadK("mean_squared_error-10-epochs-2-batches-2371-dataSetSize")
             MoveToBeacon.loaded = True
 
 
@@ -106,20 +106,25 @@ class MoveToBeacon(base_agent.BaseAgent):
                 #            output+=""
                 #        print(output)
                 #print("\n")
-                for x in newInput:
-                        output = ""
-                        for i in x:
-                            output+=str(i)
-                            output+=" "
-                        print(output)
-                print("\n")
+                #for x in newInput:
+                #        output = ""
+                #        for i in x:
+                #            output+=str(i)
+                #            output+=" "
+                #        print(output)
+                #print("\n")
+
+
+                for unit in obs.observation.feature_units:
+                    if(unit.unit_type == 317):
+                        beacon = unit
 
                 newInput = numpy.expand_dims(newInput, axis=2)
                 newInput = newInput.reshape([-1,const.InputSize(),const.InputSize(),1])
                 prediction = self.model.predict(newInput)
                 outputx = prediction[0][0] * const.ScreenSize()
                 outputy = prediction[0][1] * const.ScreenSize()
-                print('Network Predicts: {},{}'.format(outputx,outputy))
+                print(('Network Prediction vs Optimum: ({},{}) ({},{})'.format(int(outputx),int(outputy),beacon.x,beacon.y)), end='\r')
                 return actions.FUNCTIONS.Attack_screen("now", (outputx,outputy))
         #Select Marine
         else: 
@@ -135,7 +140,7 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
         #Pysc2 defs
     packagedInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
     packagedOutput = numpy.empty(const.OutputSize(), float)
-    packageCounter = 150
+    packageCounter = 1015
     def get_obs(self, obs):
         return {self.screen: obs['screen'],
                 self.available_actions: obs['available_actions']}

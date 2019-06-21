@@ -64,7 +64,7 @@ def build_knet(shapex, shapey):
     dropout = 0.2
     learning_rate = 1e-4
     decay = 1e-6
-    padding = 'valid'
+    padding = 'same'
     loss_function = 'mean_squared_error'
     metrics = 'accuracy'
     epochs = 10
@@ -83,26 +83,26 @@ def build_knet(shapex, shapey):
                      activation=activation))
     model.add(Conv2D(32, (3, 3), activation=activation))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-   # model.add(Dropout(dropout))
-
-    #model.add(Conv2D(64, (3, 3), padding=padding,
-    #                 activation=activation))
-    #model.add(Conv2D(64, (3, 3), activation=activation))
-    #model.add(MaxPooling2D(pool_size=(2, 2)))
     #model.add(Dropout(dropout))
 
-    #model.add(Conv2D(128, (3, 3), padding=padding,
-    #                 activation=activation))
-    #model.add(Conv2D(128, (3, 3), activation=activation))
-    #model.add(MaxPooling2D(pool_size=(2, 2)))
-   # model.add(Dropout(dropout))
+    model.add(Conv2D(64, (3, 3), padding=padding,
+                     activation=activation))
+    model.add(Conv2D(64, (3, 3), activation=activation))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    #model.add(Dropout(dropout))
+
+    model.add(Conv2D(128, (3, 3), padding=padding,
+                     activation=activation))
+    model.add(Conv2D(128, (3, 3), activation=activation))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    #model.add(Dropout(dropout))
 
     model.add(Flatten())
     model.add(Dense(512, activation=activation))
     #model.add(Dropout(dropout + 0.3))
 
     #Output Layer
-    model.add(Dense(2, activation='softmax'))
+    model.add(Dense(2, activation=activation))
 
     
     opt = keras.optimizers.adam(lr=learning_rate, decay=decay)
@@ -125,12 +125,12 @@ def build_knet(shapex, shapey):
                 validation_split=0.1, 
                 shuffle=False, verbose=verbose, callbacks=[tensorboard])
 
-    prediction = model.predict(TD[0])
+    #prediction = model.predict(TD[0])
 
-    for loop in range(0,150):
-        dec1 = np.around(prediction[loop][0],2)
-        dec2 = np.around(prediction[loop][1],2)
-        print(str([dec1,dec2]) + '      ' + str(TD[1][loop]))
+    #for loop in range(0,150):
+    #    dec1 = np.around(prediction[loop][0],2)
+    #    dec2 = np.around(prediction[loop][1],2)
+    #    print(str([dec1,dec2]) + '      ' + str(TD[1][loop]))
 
     model.save("{}-{}-epochs-{}-batches-{}-dataSetSize".format(loss_function, epochs, batch_size, file_size))
     print('Finished Training')
