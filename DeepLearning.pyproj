@@ -11,8 +11,9 @@
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <InterpreterId>CondaEnv|CondaEnv|Environment 1</InterpreterId>
+    <InterpreterId>CondaEnv|CondaEnv|DeepLearning</InterpreterId>
     <Name>DeepLearning</Name>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
@@ -20,16 +21,24 @@
     <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Bots\DefeatEnemies.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Bots\Overmind\Overmindx00.py" />
     <Compile Include="Bots\MoveToBeacon.py" />
+    <Compile Include="DeepNetwork.py" />
     <Compile Include="Main.py" />
-  </ItemGroup>
-  <ItemGroup>
-    <InterpreterReference Include="CondaEnv|CondaEnv|Environment 1" />
+    <Compile Include="Unused\SC2Problem.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Bots\" />
     <Folder Include="Bots\Overmind\" />
+    <Folder Include="Unused\" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="CondaEnv|CondaEnv|DeepLearning" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
 </Project>

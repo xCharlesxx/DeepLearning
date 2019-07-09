@@ -5,10 +5,11 @@ from __future__ import print_function
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
 
-import keras 
+import keras as ks
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
 from keras.callbacks import TensorBoard
+from keras_transformer import get_model
 
 import numpy as np 
 import os 
@@ -62,13 +63,13 @@ def get_training_data(training_data_dir):
 def build_knet(shapex, shapey):
 
     dropout = 0.2
-    learning_rate = 1e-4
+    learning_rate = 1e-2
     decay = 1e-6
     padding = 'same'
     loss_function = 'mean_squared_error'
     metrics = 'accuracy'
     epochs = 10
-    batch_size = 2
+    batch_size = 100
     verbose = 1
     #Percent of data to be split for validation
     validation = 0.1
@@ -105,7 +106,7 @@ def build_knet(shapex, shapey):
     model.add(Dense(2, activation=activation))
 
     
-    opt = keras.optimizers.adam(lr=learning_rate, decay=decay)
+    opt = ks.optimizers.adam(lr=learning_rate, decay=decay)
 
     model.compile(loss=loss_function, 
                   optimizer=opt, 
@@ -163,3 +164,32 @@ def build_net(input, info, num_action):
     return spatial_action, non_spatial_action, value
 
 
+def build_transformer():
+
+    #td = get_training_data("training_data")
+
+    model = get_model(
+    token_num=(const.InputSize(), const.InputSize()),
+    embed_dim=1,
+    encoder_num=3,
+    decoder_num=2,
+    head_num=3,
+    hidden_dim=120,
+    attention_activation='relu',
+    feed_forward_activation='relu',
+    dropout_rate=0.05,
+    embed_weights=np.random.random((13, 30))
+    )
+    
+    
+    model.compile(optimizer='adam',
+    loss='sparse_categorical_crossentropy')
+    model.summary()
+
+    # Train the model
+    model.fit(
+        x=[np.asarray(encoder_inputs * 1000), np.asarray(decoder_inputs * 1000)],
+        y=np.asarray(decoder_outputs * 1000),
+        epochs=5)
+
+    return 0
