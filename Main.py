@@ -14,6 +14,7 @@ import Bots
 from Bots.MoveToBeacon import MoveToBeacon, GenerateMoveToBeaconTestData
 from Bots.Overmind.Overmindx00 import Overmindx00
 from DeepNetwork import build_knet, build_transformer
+from Bots.DefeatEnemies import RandomAgent, DefeatEnemies
 from pysc2.agents import base_agent
 from pysc2.env import sc2_env, run_loop
 from pysc2.lib import actions, features, units
@@ -25,11 +26,11 @@ def main(unused_argv):
     #build_transformer()
 
     #Agent
-    agent = MoveToBeacon()
+    agent = RandomAgent()
     try: 
         while True:
             with sc2_env.SC2Env(False,
-                map_name = 'MoveToBeacon',
+                map_name = 'DefeatZerglingsAndBanelings',
                 players= [
                         sc2_env.Agent(sc2_env.Race.zerg)#,
                         #sc2_env.Bot(sc2_env.Race.zerg, sc2_env.Difficulty.very_easy)
@@ -40,7 +41,7 @@ def main(unused_argv):
                     #More indepth unit information
                     use_feature_units=True),
                 #Steps default is 8 per frame (168APM)
-                step_mul=25,#175
+                step_mul=1,#175
                 #Max steps per game (0 is infinite)
                 game_steps_per_episode=0,
                 #visualize pysc2 input layers 

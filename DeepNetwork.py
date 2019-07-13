@@ -147,6 +147,38 @@ def build_knet():
     print('Finished Training')
     return 0
 
+
+def build_LSTM():
+    padding = 'same'
+    activation = 'tanh'
+    model = Sequential()
+
+    model.add(Conv2D(64, kernel_size=(5, 5), input_shape=(const.InputSize(), const.InputSize(), 1)))
+    model.add(Activation(activation))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding=padding))
+    model.add(Dropout(0.3))
+
+    model.add(Conv2D(128, kernel_size=(3, 3), input_shape=input))
+    model.add(Activation(activation))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding=padding))
+    model.add(Dropout(0.3))
+
+    model.add(Conv2D(256, kernel_size=(3, 3)))
+    model.add(Activation(activation))
+    model.add(MaxPooling2D(pool_size=(2, 2), padding=padding))
+    model.add(Dropout(0.3))
+    model.add(Flatten())
+
+    model.add(Dense(256, activation=activation))
+    model.add(Reshape((1, 256)))
+    # Add some memory
+    model.add(LSTM(256))
+    model.add(Dense(12, activation='softmax'))
+    model.compile(loss="categorical_crossentropy",
+                  optimizer="adam",
+                  metrics=["accuracy"])
+    return model
+
 #Tensorflow
 def build_net(input, info, num_action):
     mconv1 = layers.conv2d(tf.transpose(input, [0, 2, 3, 1]),
