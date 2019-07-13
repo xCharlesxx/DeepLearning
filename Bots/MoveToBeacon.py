@@ -38,9 +38,12 @@ class MoveToBeacon(base_agent.BaseAgent):
         return action in obs.observation.available_actions
 
     def unit_type_is_selected(self, obs, unit_type):
-        if (len(obs.observation.single_select) > 0 and
-         obs.observation.single_select[0].unit_type == unit_type):
-          return True
+        if (len(obs.observation.multi_select) > 0): 
+            if (obs.observation.multi_select[0].unit_type == unit_type):
+                return True
+        elif (len(obs.observation.single_select) > 0):
+                if (obs.observation.single_select[0].unit_type == unit_type):
+                    return True
         
       #Tensorflow defs
     def build():
@@ -70,11 +73,13 @@ class MoveToBeacon(base_agent.BaseAgent):
         super(MoveToBeacon, self).step(obs)
 
         if MoveToBeacon.loaded == False:
-            self.loadK("mean_squared_error-10-epochs-2-batches-2371-dataSetSize")
+            self.loadK("8Dense-10-epochs-2-batches-3000-dataSetSize-98%")
             MoveToBeacon.loaded = True
 
 
         #If maring is selected, use DNN
+        #print("Single: " + (str)(len(obs.observation.single_select)))
+        #print("Multi: " + (str)(len(obs.observation.multi_select)))
         if self.unit_type_is_selected(obs, units.Terran.Marine):
             if self.can_do(obs, actions.FUNCTIONS.Attack_screen.id):
 
@@ -124,7 +129,7 @@ class MoveToBeacon(base_agent.BaseAgent):
                 prediction = self.model.predict(newInput)
                 outputx = prediction[0][0] * const.ScreenSize()
                 outputy = prediction[0][1] * const.ScreenSize()
-                print(('Network Prediction vs Optimum: ({},{}) ({},{})'.format(int(outputx),int(outputy),beacon.x,beacon.y)), end='\r')
+                #print(('Network Prediction vs Optimum: ({},{}) ({},{})'.format(int(outputx),int(outputy),beacon.x,beacon.y)), end='\r')
                 return actions.FUNCTIONS.Attack_screen("now", (outputx,outputy))
         #Select Marine
         else: 
@@ -140,7 +145,7 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
         #Pysc2 defs
     packagedInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
     packagedOutput = numpy.empty(const.OutputSize(), float)
-    packageCounter = 1015
+    packageCounter = 0
     def get_obs(self, obs):
         return {self.screen: obs['screen'],
                 self.available_actions: obs['available_actions']}
@@ -192,19 +197,24 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
                 writer.writerows(GenerateMoveToBeaconTestData.packagedInput)
                 writer.writerow(GenerateMoveToBeaconTestData.packagedOutput)
             GenerateMoveToBeaconTestData.packageCounter+=1
+            if (GenerateMoveToBeaconTestData.packageCounter == 3000):
+                GenerateMoveToBeaconTestData.packageCounter = 4000
 
 
         input = obs.observation.feature_minimap[5]
+
+
         stencil = obs.observation.feature_minimap[3]
+
         #24x24 is refined input data size
         #Use camera stencil to grab relevent data   
-        newInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
+        newinput = numpy.zeros((const.InputSize(),const.InputSize()),int)
         counterx = 0
         countery = 0
         for numy, y in enumerate(stencil):
             for numx, x in enumerate(y): 
                 if (x == 1):
-                    newInput[countery][counterx] = input[numy][numx]
+                    newinput[countery][counterx] = input[numy][numx]
                     counterx+=1
                 if (counterx == const.InputSize()):
                     countery+=1
@@ -214,13 +224,20 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
         for unit in obs.observation.feature_units:
             if(unit.unit_type == 317):
                 beacon = unit
-
+        
+        #for x in newinput:
+        #    output = ""
+        #    for i in x:
+        #        output+=str(i)
+        #        output+=""
+        #    print(output)
+        #print("\n")
 
         #Screen is not 84x84 but ~84x60 but 84x84 for simplicity
         outputx = beacon.x #random.randint(0,const.ScreenSize())
         outputy = beacon.y #random.randint(0,const.ScreenSize())
 
-        GenerateMoveToBeaconTestData.packagedInput = newInput
+        GenerateMoveToBeaconTestData.packagedInput = newinput
         #/84 to get a number between 0 and 1 as outputs for DNN
         GenerateMoveToBeaconTestData.packagedOutput = [float(round(Decimal(outputx/const.ScreenSize()),2)),
                                                        float(round(Decimal(outputy/const.ScreenSize()),2))]

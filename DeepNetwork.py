@@ -7,7 +7,7 @@ import tensorflow.contrib.layers as layers
 
 import keras as ks
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
+from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, Input
 from keras.callbacks import TensorBoard
 from keras_transformer import get_model
 
@@ -60,16 +60,16 @@ def get_training_data(training_data_dir):
 #Keras
 #Shape = Shape of input data
 #Dropout = Fraction rate of input inits to 0 at each update during training time, which prevents overfitting (0-1)
-def build_knet(shapex, shapey):
+def build_knet():
 
     dropout = 0.2
-    learning_rate = 1e-2
+    learning_rate = 1e-4
     decay = 1e-6
     padding = 'same'
     loss_function = 'mean_squared_error'
     metrics = 'accuracy'
     epochs = 10
-    batch_size = 100
+    batch_size = 2
     verbose = 1
     #Percent of data to be split for validation
     validation = 0.1
@@ -79,27 +79,36 @@ def build_knet(shapex, shapey):
     activation = 'tanh'
 
     model = Sequential()
-    model.add(Conv2D(32, (3, 3), padding=padding,
-                     input_shape=(const.InputSize(), const.InputSize(), 1),
-                     activation=activation))
-    model.add(Conv2D(32, (3, 3), activation=activation))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
+    #model.add(Conv2D(32, (3, 3), padding=padding,
+    #                 input_shape=(const.InputSize(), const.InputSize(), 1),
+    #                 activation=activation))
+    #model.add(Conv2D(32, (3, 3), activation=activation))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
+    ##model.add(Dropout(dropout))
+
+    #model.add(Conv2D(64, (3, 3), padding=padding,
+    #                 activation=activation))
+    #model.add(Conv2D(64, (3, 3), activation=activation))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
+    ##model.add(Dropout(dropout))
+
+    #model.add(Conv2D(128, (3, 3), padding=padding,
+    #                 activation=activation))
+    #model.add(Conv2D(128, (3, 3), activation=activation))
+    #model.add(MaxPooling2D(pool_size=(2, 2)))
     #model.add(Dropout(dropout))
 
-    model.add(Conv2D(64, (3, 3), padding=padding,
-                     activation=activation))
-    model.add(Conv2D(64, (3, 3), activation=activation))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    #model.add(Dropout(dropout))
 
-    model.add(Conv2D(128, (3, 3), padding=padding,
-                     activation=activation))
-    model.add(Conv2D(128, (3, 3), activation=activation))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    #model.add(Dropout(dropout))
-
+    #model.add(Dense(1280, activation=activation))
     model.add(Flatten())
     model.add(Dense(512, activation=activation))
+   # model.add(Dense(320, activation=activation))
+    model.add(Dense(160, activation=activation))
+   # model.add(Dense(80, activation=activation))
+    model.add(Dense(40, activation=activation))
+   # model.add(Dense(20, activation=activation))
+    model.add(Dense(10, activation=activation))
+  #  model.add(Dense(5, activation=activation))
     #model.add(Dropout(dropout + 0.3))
 
     #Output Layer
@@ -124,7 +133,8 @@ def build_knet(shapex, shapey):
                 batch_size=batch_size,
                 epochs=epochs,
                 validation_split=0.1, 
-                shuffle=False, verbose=verbose, callbacks=[tensorboard])
+                shuffle=False, verbose=verbose)
+    
 
     #prediction = model.predict(TD[0])
 
@@ -166,10 +176,9 @@ def build_net(input, info, num_action):
 
 def build_transformer():
 
-    #td = get_training_data("training_data")
-
+    td = get_training_data("training_data")
     model = get_model(
-    token_num=(const.InputSize(), const.InputSize()),
+    token_num=(const.inputsize(), const.inputsize()),
     embed_dim=1,
     encoder_num=3,
     decoder_num=2,
@@ -186,10 +195,11 @@ def build_transformer():
     loss='sparse_categorical_crossentropy')
     model.summary()
 
-    # Train the model
+     #train the model
     model.fit(
         x=[np.asarray(encoder_inputs * 1000), np.asarray(decoder_inputs * 1000)],
         y=np.asarray(decoder_outputs * 1000),
         epochs=5)
 
     return 0
+
