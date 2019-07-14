@@ -100,6 +100,8 @@ def build_knet():
 
 
     #model.add(Dense(1280, activation=activation))
+
+    #No defined input shape still works?! 
     model.add(Flatten())
     model.add(Dense(512, activation=activation))
    # model.add(Dense(320, activation=activation))
@@ -147,12 +149,11 @@ def build_knet():
     print('Finished Training')
     return 0
 
-
+#multi-class classification problem
 def build_LSTM():
     padding = 'same'
-    activation = 'tanh'
+    activation = 'relu'
     model = Sequential()
-
     model.add(Conv2D(64, kernel_size=(5, 5), input_shape=(const.InputSize(), const.InputSize(), 1)))
     model.add(Activation(activation))
     model.add(MaxPooling2D(pool_size=(2, 2), padding=padding))
@@ -173,7 +174,7 @@ def build_LSTM():
     model.add(Reshape((1, 256)))
     # Add some memory
     model.add(LSTM(256))
-    model.add(Dense(12, activation='softmax'))
+    model.add(Dense(2, activation='softmax'))
     model.compile(loss="categorical_crossentropy",
                   optimizer="adam",
                   metrics=["accuracy"])

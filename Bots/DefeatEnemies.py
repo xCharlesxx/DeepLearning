@@ -57,60 +57,50 @@ class DefeatEnemies(base_agent.BaseAgent):
             DefeatEnemies.loaded = True
 
 
-        if self.unit_type_is_selected(obs, units.Terran.Marine):
-            if self.can_do(obs, actions.FUNCTIONS.Attack_screen.id):
+
+        #84x84 Detailed
+        #input = obs.observation.feature_screen[6]
+
+        #31x31 Simplified
+        input = obs.observation.feature_minimap[5]
+        stencil = obs.observation.feature_minimap[3]
+        newInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
+        counterx = 0
+        countery = 0
+        for numy, y in enumerate(stencil):
+            for numx, x in enumerate(y): 
+                if (x == 1):
+                    newInput[countery][counterx] = input[numy][numx]
+                    counterx+=1
+                if (counterx == const.InputSize()):
+                    countery+=1
+                    counterx=0
+
+        #for x in obs.observation.feature_screen[6]:
+        #        output = ""
+        #        for i in x:
+        #            output+=str(i)
+        #            output+=""
+        #        print(output)
+        #print("\n")
+
+        newInput = numpy.expand_dims(newInput, axis=2)
+        newInput = newInput.reshape([-1,const.InputSize(),const.InputSize(),1])
 
 
-                #84x84 Detailed
-                #input = obs.observation.feature_screen[6]
-
-                #31x31 Simplified
-                input = obs.observation.feature_minimap[5]
-                stencil = obs.observation.feature_minimap[3]
-                newInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
-                counterx = 0
-                countery = 0
-                for numy, y in enumerate(stencil):
-                    for numx, x in enumerate(y): 
-                        if (x == 1):
-                            newInput[countery][counterx] = input[numy][numx]
-                            counterx+=1
-                        if (counterx == const.InputSize()):
-                            countery+=1
-                            counterx=0
-
-                #for x in obs.observation.feature_screen[6]:
-                #        output = ""
-                #        for i in x:
-                #            output+=str(i)
-                #            output+=""
-                #        print(output)
-                #print("\n")
-
-                newInput = numpy.expand_dims(newInput, axis=2)
-                newInput = newInput.reshape([-1,const.InputSize(),const.InputSize(),1])
+        self.model.fit(TD[0], TD[1], 
+        batch_size=batch_size,
+        epochs=epochs,
+        validation_split=0.1, 
+        shuffle=False, verbose=verbose)
+        #for marines in obs.observation.multi_select:
+        #    obs.observation.multi_select[0]
+        #    prediction = self.model.predict(newInput)
 
 
-                self.model.fit(TD[0], TD[1], 
-                batch_size=batch_size,
-                epochs=epochs,
-                validation_split=0.1, 
-                shuffle=False, verbose=verbose)
-                #for marines in obs.observation.multi_select:
-                #    obs.observation.multi_select[0]
-                #    prediction = self.model.predict(newInput)
-
-
-                outputx = prediction[0][0] * const.ScreenSize()
-                outputy = prediction[0][1] * const.ScreenSize()
-                return actions.FUNCTIONS.Attack_screen("now", (outputx,outputy))
-
-        #Select Marine
-        else: 
-            marine = self.get_units_by_type(obs, units.Terran.Marine)
-            if len(marine) > 0: 
-                return actions.FUNCTIONS.select_point('select_all_type', (marine[0].x,
-                                                                    marine[0].y))
+        outputx = prediction[0][0] * const.ScreenSize()
+        outputy = prediction[0][1] * const.ScreenSize()
+        return actions.FunctionCall(function_id, args)
 
         return actions.FUNCTIONS.no_op()
 
@@ -118,6 +108,18 @@ class DefeatEnemies(base_agent.BaseAgent):
 class RandomAgent(base_agent.BaseAgent):
   """A random agent for starcraft."""
   inputActionPairs = np.empty([1])
+  prevUnits = 0
+
+  def hasGameReset(self,obs,prevUnits):
+      numUnits = len(obs.observation.feature_units)
+      if (numUnits > prevUnits):
+          self.prevUnits = numUnits
+          print("GameReset!")
+          return True
+      else: 
+          self.prevUnits = numUnits
+          return False
+
   def getSimplifiedInput(self, obs):
     #31x31 Simplified
     input = obs.observation.feature_minimap[5]
@@ -139,26 +141,88 @@ class RandomAgent(base_agent.BaseAgent):
   def step(self, obs):
     super(RandomAgent, self).step(obs)
 
-    input = self.getSimplifiedInput(obs)
-    for x in input:
-            output = ""
-            for i in x:
-                output+=str(i)
-                output+=""
-            print(output)
-    print("\n")
+    if (self.hasGameReset(obs,self.prevUnits)):
+        self.steps = 0 
+        self.reward = 0
+    #input = self.getSimplifiedInput(obs)
+    #for x in input:
+    #        output = ""
+    #        for i in x:
+    #            output+=str(i)
+    #            output+=""
+    #        print(output)
+    #print("\n")
+    
+    #for i in range(0,15):
+    #    for arg in self.action_spec.functions[i].args:
+    #        print(arg.sizes)
+    #        print('\n')
 
 
 
-    while True:
-        function_id = numpy.random.choice(obs.observation.available_actions)
+    #number between 0-14 inclusive 
 
-        args = [[numpy.random.randint(0, size) for size in arg.sizes] 
-                for arg in self.action_spec.functions[function_id].args]
+    output1 = random.uniform(0,1)*10
+    #output2 = 0.7
+    #output3 = 0.4
+    #oa = [1,2,3]
+    #newouput1 = numpy.round(output1*(len(obs.observation.available_actions)),0)
+    #n = 0
+    #newoutput2 = [[oa[n+size] for size in arg.sizes] 
+    #        for arg in self.action_spec.functions[newouput1].args]
+    #print(newoutput2)
+    #for size in arg.sizes:
+    #    for arg in self.action_spec.functions[function_id].args:
+    #        newoutput2.append(size,arg)
 
-        print(function_id)
-        print(args)
-        if ((str)(np.array(args).shape) == "(2,)"):
-            break
+    #print(newoutput2)
+    #while True:
+    function_id = 0
+    #attack-screen
+    if (output1 < 5):
+        if (12 in obs.observation.available_actions):
+            function_id = 12
+            print("Attack")
+    ##select rect
+    #elif (output1 < 4):
+    #    if (3 in obs.observation.available_actions):
+    #        function_id = 3
+    #        print("Select rect")
+    #select army
+    #elif (output1 < 6):
+    #    if (7 in obs.observation.available_actions):
+    #        function_id = 7
+    #        print("All units")
+    #Move-screen
+    elif (output1 < 10):
+        if (331 in obs.observation.available_actions):
+            function_id = 331
+            print("Select point")
+    ##stop
+    #elif (output1 < 10):
+    #    if (274 in obs.observation.available_actions):
+    #        function_id = 274
+    #        print("Stop")
 
+    #numpy.random.choice(obs.observation.available_actions)
+    #for x in obs.observation.available_actions:
+    #    print(x)
+    #for x in self.action_spec.functions:
+    #    print(x)
+    args = [[numpy.random.randint(0, size) for size in arg.sizes] 
+            for arg in self.action_spec.functions[function_id].args]
+
+        #if ((str)(np.array(args).shape) == "(2,)"):
+        #    break
+    #numpy.array(args)
+    if (function_id == 5):
+        args[1] = [48]
+
+
+    #args[0] = [(numpy.random.randint(0, 3))]
+    #args[1][0] = numpy.random.randint(0, 84)
+    #args[1][1] = numpy.random.randint(0, 84)
+    #args[2][0] = 0
+    #args[2][1] = 0
+    print("Function ID: {} Args: {}".format(function_id,args))
     return actions.FunctionCall(function_id, args)
