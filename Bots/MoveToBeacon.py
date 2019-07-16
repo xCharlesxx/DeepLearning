@@ -191,14 +191,14 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
             #        output = ""
             #        counter = 0
             #print(GenerateMoveToBeaconTestData.packagedOutput)
-            fileName = 'training_data/' + str(GenerateMoveToBeaconTestData.packageCounter) + '.csv'
+            fileName = 'training_data/' + str(self.packageCounter) + '.csv'
             with open(fileName, mode='w', newline='') as file:
                 writer = csv.writer(file)
-                writer.writerows(GenerateMoveToBeaconTestData.packagedInput)
-                writer.writerow(GenerateMoveToBeaconTestData.packagedOutput)
-            GenerateMoveToBeaconTestData.packageCounter+=1
-            if (GenerateMoveToBeaconTestData.packageCounter == 3000):
-                GenerateMoveToBeaconTestData.packageCounter = 4000
+                writer.writerows(self.packagedInput)
+                writer.writerow(self.packagedOutput)
+            self.packageCounter+=1
+            if (self.packageCounter == 3000):
+                self.packageCounter = 4000
 
 
         input = obs.observation.feature_minimap[5]
@@ -237,9 +237,9 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
         outputx = beacon.x #random.randint(0,const.ScreenSize())
         outputy = beacon.y #random.randint(0,const.ScreenSize())
 
-        GenerateMoveToBeaconTestData.packagedInput = newinput
+        self.packagedInput = newinput
         #/84 to get a number between 0 and 1 as outputs for DNN
-        GenerateMoveToBeaconTestData.packagedOutput = [float(round(Decimal(outputx/const.ScreenSize()),2)),
+        self.packagedOutput = [float(round(Decimal(outputx/const.ScreenSize()),2)),
                                                        float(round(Decimal(outputy/const.ScreenSize()),2))]
         if self.unit_type_is_selected(obs, units.Terran.Marine):
             if self.can_do(obs, actions.FUNCTIONS.Attack_screen.id):

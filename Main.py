@@ -41,13 +41,13 @@ def main(unused_argv):
                     #More indepth unit information
                     use_feature_units=True),
                 #Steps default is 8 per frame (168APM)
-                step_mul=10,#175
+                step_mul=25,#175
                 #Max steps per game (0 is infinite)
                 game_steps_per_episode=0,
                 #visualize pysc2 input layers 
                 visualize=False, 
                 #Play-back-time
-                realtime=True, 
+                realtime=False, 
                 #Fog of War
                 disable_fog=False
            ) as env:
