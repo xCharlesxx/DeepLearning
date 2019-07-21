@@ -13,7 +13,7 @@ import Bots
 
 from Bots.MoveToBeacon import MoveToBeacon, GenerateMoveToBeaconTestData
 from Bots.Overmind.Overmindx00 import Overmindx00
-from DeepNetwork import build_knet, build_transformer
+from DeepNetwork import build_knet, build_transformer, build_LSTM
 from Bots.DefeatEnemies import RandomAgent, DefeatEnemies
 from pysc2.agents import base_agent
 from pysc2.env import sc2_env, run_loop
@@ -24,9 +24,9 @@ from absl import app
 def main(unused_argv):
     #build_knet()
     #build_transformer()
-
+    #build_LSTM()
     #Agent
-    agent = RandomAgent()
+    agent = DefeatEnemies()
     try: 
         while True:
             with sc2_env.SC2Env(False,
@@ -41,13 +41,13 @@ def main(unused_argv):
                     #More indepth unit information
                     use_feature_units=True),
                 #Steps default is 8 per frame (168APM)
-                step_mul=25,#175
+                step_mul=175,#175
                 #Max steps per game (0 is infinite)
                 game_steps_per_episode=0,
                 #visualize pysc2 input layers 
                 visualize=False, 
                 #Play-back-time
-                realtime=False, 
+                realtime=True, 
                 #Fog of War
                 disable_fog=False
            ) as env:

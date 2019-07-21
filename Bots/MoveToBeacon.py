@@ -191,39 +191,39 @@ class GenerateMoveToBeaconTestData(base_agent.BaseAgent):
             #        output = ""
             #        counter = 0
             #print(GenerateMoveToBeaconTestData.packagedOutput)
-            fileName = 'training_data/' + str(self.packageCounter) + '.csv'
+            fileName = 'raw_training_data/' + str(self.packageCounter) + '.csv'
             with open(fileName, mode='w', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(self.packagedInput)
                 writer.writerow(self.packagedOutput)
             self.packageCounter+=1
-            if (self.packageCounter == 3000):
-                self.packageCounter = 4000
+            #if (self.packageCounter == 3000):
+            #    self.packageCounter = 4000
 
 
-        input = obs.observation.feature_minimap[5]
+        newinput = obs.observation.feature_screen[6]
 
 
-        stencil = obs.observation.feature_minimap[3]
+        #stencil = obs.observation.feature_minimap[3]
 
-        #24x24 is refined input data size
-        #Use camera stencil to grab relevent data   
-        newinput = numpy.zeros((const.InputSize(),const.InputSize()),int)
-        counterx = 0
-        countery = 0
-        for numy, y in enumerate(stencil):
-            for numx, x in enumerate(y): 
-                if (x == 1):
-                    newinput[countery][counterx] = input[numy][numx]
-                    counterx+=1
-                if (counterx == const.InputSize()):
-                    countery+=1
-                    counterx=0
-
+        ##24x24 is refined input data size
+        ##Use camera stencil to grab relevent data   
+        #newinput = numpy.zeros((const.InputSize(),const.InputSize()),int)
+        #counterx = 0
+        #countery = 0
+        #for numy, y in enumerate(stencil):
+        #    for numx, x in enumerate(y): 
+        #        if (x == 1):
+        #            newinput[countery][counterx] = input[numy][numx]
+        #            counterx+=1
+        #        if (counterx == const.InputSize()):
+        #            countery+=1
+        #            counterx=0
 
         for unit in obs.observation.feature_units:
             if(unit.unit_type == 317):
                 beacon = unit
+
         
         #for x in newinput:
         #    output = ""

@@ -1,6 +1,6 @@
 class const:
     def InputSize():
-       return 31
+       return 84
     def OutputSize():
         return 2
     def ScreenSize():

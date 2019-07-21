@@ -53,56 +53,63 @@ class DefeatEnemies(base_agent.BaseAgent):
         super(DefeatEnemies, self).step(obs)
 
         if DefeatEnemies.loaded == False:
-            self.loadK("8Dense-10-epochs-2-batches-3000-dataSetSize-98%")
+            self.loadK("LSTM84")
             DefeatEnemies.loaded = True
 
+        if self.unit_type_is_selected(obs, units.Terran.Marine):
+            if self.can_do(obs, actions.FUNCTIONS.Attack_screen.id):
+
+                #84x84 Detailed
+                input = obs.observation.feature_screen[6]
+
+                #31x31 Simplified
+                #input = obs.observation.feature_screen[5]
+                #stencil = obs.observation.feature_screen[3]
+                #newInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
+                #counterx = 0
+                #countery = 0
+                #for numy, y in enumerate(stencil):
+                #    for numx, x in enumerate(y): 
+                #        if (x == 1):
+                #            newInput[countery][counterx] = input[numy][numx]
+                #            counterx+=1
+                #        if (counterx == const.InputSize()):
+                #            countery+=1
+                #            counterx=0
+
+                #for x in obs.observation.feature_screen[6]:
+                #        output = ""
+                #        for i in x:
+                #            output+=str(i)
+                #            output+=""
+                #        print(output)
+                #print("\n")
+
+                newInput = numpy.expand_dims(input, axis=2)
+                newInput = newInput.reshape([-1,const.InputSize(),const.InputSize(),1])
 
 
-        #84x84 Detailed
-        #input = obs.observation.feature_screen[6]
-
-        #31x31 Simplified
-        input = obs.observation.feature_minimap[5]
-        stencil = obs.observation.feature_minimap[3]
-        newInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
-        counterx = 0
-        countery = 0
-        for numy, y in enumerate(stencil):
-            for numx, x in enumerate(y): 
-                if (x == 1):
-                    newInput[countery][counterx] = input[numy][numx]
-                    counterx+=1
-                if (counterx == const.InputSize()):
-                    countery+=1
-                    counterx=0
-
-        #for x in obs.observation.feature_screen[6]:
-        #        output = ""
-        #        for i in x:
-        #            output+=str(i)
-        #            output+=""
-        #        print(output)
-        #print("\n")
-
-        newInput = numpy.expand_dims(newInput, axis=2)
-        newInput = newInput.reshape([-1,const.InputSize(),const.InputSize(),1])
+                #self.model.fit(TD[0], TD[1], 
+                #batch_size=batch_size,
+                #epochs=epochs,
+                #validation_split=0.1, 
+                #shuffle=False, verbose=verbose)
+                prediction = self.model.predict(newInput)
+                #for marines in obs.observation.multi_select:
+                #    obs.observation.multi_select[0]
+                #    prediction = self.model.predict(newInput)
 
 
-        self.model.fit(TD[0], TD[1], 
-        batch_size=batch_size,
-        epochs=epochs,
-        validation_split=0.1, 
-        shuffle=False, verbose=verbose)
-        #for marines in obs.observation.multi_select:
-        #    obs.observation.multi_select[0]
-        #    prediction = self.model.predict(newInput)
+                outputx = prediction[0][0] * const.ScreenSize()
+                outputy = prediction[0][1] * const.ScreenSize()
+            #return actions.FunctionCall(function_id, args)
 
-
-        outputx = prediction[0][0] * const.ScreenSize()
-        outputy = prediction[0][1] * const.ScreenSize()
-        return actions.FunctionCall(function_id, args)
-
-        return actions.FUNCTIONS.no_op()
+                return actions.FUNCTIONS.Attack_screen("now", (outputx,outputy))
+        else: 
+            marine = self.get_units_by_type(obs, units.Terran.Marine)
+            if len(marine) > 0: 
+                return actions.FUNCTIONS.select_point('select_all_type', (marine[0].x,
+                                                                    marine[0].y))
 
 
 class RandomAgent(base_agent.BaseAgent):

@@ -7,7 +7,7 @@ import tensorflow.contrib.layers as layers
 
 import keras as ks
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, Input
+from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, LSTM, Reshape
 from keras.callbacks import TensorBoard
 from keras_transformer import get_model
 
@@ -154,18 +154,17 @@ def build_LSTM():
     padding = 'same'
     activation = 'relu'
     model = Sequential()
-    model.add(Conv2D(64, kernel_size=(5, 5), input_shape=(const.InputSize(), const.InputSize(), 1)))
-    model.add(Activation(activation))
+    model.add(Conv2D(64, kernel_size=(5, 5), input_shape=(const.InputSize(), const.InputSize(), 1),
+                    activation=activation))
     model.add(MaxPooling2D(pool_size=(2, 2), padding=padding))
     model.add(Dropout(0.3))
 
-    model.add(Conv2D(128, kernel_size=(3, 3), input_shape=input))
-    model.add(Activation(activation))
+    model.add(Conv2D(128, kernel_size=(3, 3), 
+                     activation=activation))
     model.add(MaxPooling2D(pool_size=(2, 2), padding=padding))
     model.add(Dropout(0.3))
 
-    model.add(Conv2D(256, kernel_size=(3, 3)))
-    model.add(Activation(activation))
+    model.add(Conv2D(256, kernel_size=(3, 3), activation=activation))
     model.add(MaxPooling2D(pool_size=(2, 2), padding=padding))
     model.add(Dropout(0.3))
     model.add(Flatten())
@@ -174,10 +173,19 @@ def build_LSTM():
     model.add(Reshape((1, 256)))
     # Add some memory
     model.add(LSTM(256))
-    model.add(Dense(2, activation='softmax'))
-    model.compile(loss="categorical_crossentropy",
+    model.add(Dense(2, activation=activation))
+    model.compile(loss='mean_squared_error',
                   optimizer="adam",
                   metrics=["accuracy"])
+
+    TD = get_training_data("raw_training_data")
+    model.fit(TD[0], TD[1],
+            batch_size=2,
+            epochs=10,
+            validation_split=0.1,
+            shuffle=False, verbose=1)
+
+    model.save("LSTM84")
     return model
 
 #Tensorflow
