@@ -24,7 +24,7 @@ from absl import app
 def main(unused_argv):
     #build_knet()
     #build_transformer()
-    #build_LSTM()
+    build_LSTM()
     #Agent
     agent = DefeatEnemies()
     try: 
@@ -40,7 +40,7 @@ def main(unused_argv):
                     feature_dimensions=features.Dimensions(screen=84, minimap=84),
                     #More indepth unit information
                     use_feature_units=True),
-                #Steps default is 8 per frame (168APM)
+                #Steps default is 8 per frame (168APM) (16 = 1 second)
                 step_mul=175,#175
                 #Max steps per game (0 is infinite)
                 game_steps_per_episode=0,
