@@ -1,4 +1,4 @@
-from pysc2.lib import features, point, remote_controller
+from pysc2.lib import features, point, remote_controller, actions
 from absl import app, flags
 from pysc2.env.environment import TimeStep, StepType
 from pysc2 import run_configs
@@ -13,7 +13,8 @@ import math
 import random
 import numpy as np
 import multiprocessing
-import sys, os 
+import sys, os
+from Constants import const
 
 cpus = multiprocessing.cpu_count()
 
@@ -56,8 +57,8 @@ class Parser:
         screen_size_px = point.Point(*screen_size_px)
         minimap_size_px = point.Point(*minimap_size_px)
         interface = sc_pb.InterfaceOptions(
-            raw=False, score=True,
-            feature_layer=sc_pb.SpatialCameraSetup(width=24,allow_cheating_layers=True,crop_to_playable_area=True))
+            raw=True, score=True,
+            feature_layer=sc_pb.SpatialCameraSetup(width=350,allow_cheating_layers=False,crop_to_playable_area=True),show_cloaked=True, raw_affects_selection=True,raw_crop_to_playable_area=True)
         screen_size_px.assign_to(interface.feature_layer.resolution)
         minimap_size_px.assign_to(interface.feature_layer.minimap_resolution)
 
@@ -81,7 +82,7 @@ class Parser:
         """Make sure the replay isn't corrupt, and is worth looking at."""
         if (info.HasField("error") or
                     info.base_build != ping.base_build or  # different game version
-                    info.game_duration_loops < 1000 or
+                    info.game_duration_loops < 10 or
                     len(info.player_info) != 2):
             # Probably corrupt, or just not interesting.
             return False
@@ -95,7 +96,8 @@ class Parser:
     def start(self):
         print("Hello we are in Start")
 
-        step_mul = 10000
+
+        step_mul = 50
         _features = features.features_from_game_info(self.controller.game_info())
         
         while True:
@@ -103,6 +105,8 @@ class Parser:
             self.controller.step(step_mul)
             #Converts visual data into abstract data
             obs = self.controller.observe()
+            #if (len(obs.actions) != 0):
+                #print(obs.actions)
             agent_obs = _features.transform_obs(obs)
 
             if obs.player_result: # Episide over.
@@ -117,7 +121,10 @@ class Parser:
                             discount=discount, observation=agent_obs)
 
             self.agent.step(step, self.info)
+            screenpoint = (84, 84)
+            screenpoint = point.Point(*screenpoint)
 
+            #self.controller.actions(sc_pb.RequestAction(actions=[actions.FUNCTIONS.move_camera(screenpoint)]))
             if obs.player_result:
                 break
 
@@ -146,9 +153,9 @@ def parse_replay(replay_batch, agent_module, agent_cls):
 def main(unused):
     agent_module, agent_name = FLAGS.agent.rsplit(".", 1)
     agent_cls = getattr(importlib.import_module(agent_module), agent_name)
-    processes = 2#FLAGS.procs
+    processes = 1#FLAGS.procs
     replay_folder = FLAGS.replays
-    batch_size = FLAGS.batch
+    batch_size = 1#FLAGS.batch
 
     truePath = os.path.join(replay_folder, '*.SC2Replay')
     replays = glob.glob(truePath, recursive=True)
@@ -176,8 +183,10 @@ def main(unused):
             #If at the end of replays, break
             if xp2 == len(replays):
                 break
+        #Does something? 
         for p in procs:
             p.join()
+
 
 if __name__ == "__main__":
     app.run(main)

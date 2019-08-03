@@ -15,6 +15,7 @@ from Bots.MoveToBeacon import MoveToBeacon, GenerateMoveToBeaconTestData
 from Bots.Overmind.Overmindx00 import Overmindx00
 from DeepNetwork import build_knet, build_transformer, build_LSTM
 from Bots.DefeatEnemies import RandomAgent, DefeatEnemies
+from pysc2Replay.ObserverAgent import NothingAgent
 from pysc2.agents import base_agent
 from pysc2.env import sc2_env, run_loop
 from pysc2.lib import actions, features, units
@@ -24,30 +25,33 @@ from absl import app
 def main(unused_argv):
     #build_knet()
     #build_transformer()
-    build_LSTM()
+    #build_LSTM()
+    #transform_replay
     #Agent
-    agent = DefeatEnemies()
+    agent = NothingAgent()
     try: 
         while True:
             with sc2_env.SC2Env(False,
-                map_name = 'DefeatZerglingsAndBanelings',
+                map_name = 'KingsCove',
                 players= [
-                        sc2_env.Agent(sc2_env.Race.zerg)#,
-                        #sc2_env.Bot(sc2_env.Race.zerg, sc2_env.Difficulty.very_easy)
+                        sc2_env.Agent(sc2_env.Race.zerg),
+                        sc2_env.Bot(sc2_env.Race.zerg, sc2_env.Difficulty.very_easy)
                          ], 
                 agent_interface_format=features.AgentInterfaceFormat(
                     #What resolution the player sees the world at 
                     feature_dimensions=features.Dimensions(screen=84, minimap=84),
                     #More indepth unit information
-                    use_feature_units=True),
+                    use_feature_units=True,
+                    #Increase camera size to encompass whole map
+                    camera_width_world_units=153),
                 #Steps default is 8 per frame (168APM) (16 = 1 second)
-                step_mul=175,#175
+                step_mul=1,#175
                 #Max steps per game (0 is infinite)
                 game_steps_per_episode=0,
                 #visualize pysc2 input layers 
-                visualize=False, 
+                visualize=True, 
                 #Play-back-time
-                realtime=True, 
+                realtime=True,
                 #Fog of War
                 disable_fog=False
            ) as env:

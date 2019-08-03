@@ -6,17 +6,38 @@ import math
 
 from pysc2.lib import actions as sc_action
 from pysc2.lib import static_data
+from pysc2.agents import base_agent 
 
-class ObserverAgent():
+class ObserverAgent(base_agent.BaseAgent):
 
     def __init__(self):
         self.states = []
         self.count = 0;
 
+    def stencil(self, _stencil, _raw_list, _new_size):
+        input = _raw_list
+        stencil = _stencil
+        newInput = np.zeros((_new_size,_new_size),int)
+        counterx = 0
+        countery = 0
+        for numy, y in enumerate(stencil):
+            for numx, x in enumerate(y): 
+                if (x != 0):
+                    newInput[countery][counterx] = input[numy][numx]
+                    counterx+=1
+                if (counterx == _new_size):
+                    countery+=1
+                    counterx=0
+        return newInput
+
     def step(self, time_step, info):
 
-        print(self.count, end='\r')
-        self.count += 1
+        #print(self.count, end='\r')
+        #self.count += 1
+
+    
+
+
         #state = {}
 
         #state["minimap"] = [
@@ -29,14 +50,54 @@ class ObserverAgent():
         #    (time_step.observation["feature_minimap"][5] == 4).astype(int),     # enemy_units
         #    time_step.observation["feature_minimap"][6]                         # selected
         #]
+        height_map = time_step.observation.feature_screen[0]
 
-        #unit_type = time_step.observation["feature_screen"][6]
+        #Remove all Zero lines 
+        #height_map = height_map[~np.all(height_map == 0, axis=1)]
+        #Remove all Zeros in remaining lines
+        #height_map = [x[x != 0] for x in height_map]
+
+        height = 0
+        width = 0
+        for x in height_map:
+            output = ""
+            width = 0
+            for i in x:
+                output+=str(i)
+                output+=" "
+                width += 1
+            print(output)
+            height += 1
+        print("\n")   
+
+        print("width: ")
+        print(width)
+        print("height: ")
+        print(height)
+        print("\n")
+        #unit_type = self.stencil(time_step.observation.feature_screen[0], time_step.observation.feature_screen[6], width)
+        return sc_action.FUNCTIONS.move_camera([42,42])
+        #for x in unit_type:
+        #    output = ""
+        #    for i in x:
+        #        output+=str(i)
+        #        output+=""
+        #    print(output)
+        #print("\n")   
+
         #unit_type_compressed = np.zeros(unit_type.shape, dtype=np.float)
         #for y in range(len(unit_type)):
         #    for x in range(len(unit_type[y])):
         #        if unit_type[y][x] > 0 and unit_type[y][x] in static_data.UNIT_TYPES:
         #            unit_type_compressed[y][x] = static_data.UNIT_TYPES.index(unit_type[y][x]) / len(static_data.UNIT_TYPES)
 
+        #for x in unit_type_compressed:
+        #    output = ""
+        #    for i in x:
+        #        output+=str(i)
+        #        output+=""
+        #    print(output)
+        #print("\n")  
         #hit_points = time_step.observation["feature_screen"][8]
         #hit_points_logged = np.zeros(hit_points.shape, dtype=np.float)
         #for y in range(len(hit_points)):
@@ -60,6 +121,8 @@ class ObserverAgent():
         #    time_step.observation["feature_screen"][11]                     # unit_density
         #]
 
+
+
         ## Binary encoding of available actions
         #'''
         #state["game_loop"] = time_step.observation["game_loop"]
@@ -71,3 +134,11 @@ class ObserverAgent():
         #'''
 
         #self.states.append(state)
+
+
+class NothingAgent(base_agent.BaseAgent):
+    def step(self, obs):
+        #print(obs.observation.available_actions)
+        #if (['move_camera'] in obs.observation.available_actions):
+        return sc_action.FUNCTIONS.move_camera([42,42])
+       # return sc_action.FUNCTIONS.no_op()

@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
-from pysc2.lib import features, point, remote_controller
+from pysc2.lib import features, point, remote_controller, actions
 from absl import app, flags
 from pysc2.env.environment import TimeStep, StepType
 from pysc2 import run_configs
+from s2clientprotocol import common_pb2
 from s2clientprotocol import sc2api_pb2 as sc_pb
 import importlib
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("replay", "D:\Games\StarCraft II\Replays\Test\Me.SC2Replay", "Path to a replay file.")
+flags.DEFINE_string("replay", "D:\Games\StarCraft II\Replays\Test\EdgeCaseTesting.SC2Replay", "Path to a replay file.")
 flags.DEFINE_string("agent", "ObserverAgent.ObserverAgent", "Path to an agent.")
 #flags.mark_flag_as_required("replay")
 #flags.mark_flag_as_required("agent")
@@ -24,7 +25,7 @@ class ReplayEnv:
                  step_mul=1):
 
         
-
+        
         self.agent = agent
         self.discount = discount
         self.step_mul = step_mul
@@ -58,7 +59,7 @@ class ReplayEnv:
             replay_data=replay_data,
             map_data=map_data,
             options=interface,
-            observed_player_id=player_id))
+            observed_player_id=0))
 
         self._state = StepType.FIRST
 
@@ -67,7 +68,7 @@ class ReplayEnv:
         """Make sure the replay isn't corrupt, and is worth looking at."""
         if (info.HasField("error") or
                     info.base_build != ping.base_build or  # different game version
-                    info.game_duration_loops < 1000 or
+                    info.game_duration_loops < 10 or
                     len(info.player_info) != 2):
             # Probably corrupt, or just not interesting.
             return False
@@ -80,7 +81,7 @@ class ReplayEnv:
 
     def start(self):
         _features = features.features_from_game_info(self.controller.game_info())
-
+        
         while True:
             self.controller.step(self.step_mul)
             obs = self.controller.observe()
@@ -88,7 +89,32 @@ class ReplayEnv:
                 agent_obs = _features.transform_obs(obs)
             except:
                 pass
+            
+            screenpoint = (42, 42)
+            screenpoint = point.Point(*screenpoint)
 
+
+            #if obs.observation.game_loop in config.actions:
+                #func = config.actions[o.game_loop](obs)
+
+           #_features.reverse_action(obs.actions[1])
+
+            action = _features.transform_action(obs.observation, actions.FUNCTIONS.move_camera([42,42]))
+            self.controller.act(action)
+
+            #self.assertEqual(actions.FUNCTIONS.move_camera.id, func.function)
+
+            #s2clientprotocol_dot_common__pb2._POINT2D
+            #actions.FUNCTIONS.move_camera(screenpoint)
+            #remote_controller.RemoteController.act(actions.move_camera(actions.FUNCTIONS.move_camera,['FEATURES'], screenpoint))
+            #action_observer_camera_move = (sc_pb.ActionObserverCameraMove(world_pos = screenpoint))
+            #sc_pb.RequestObserverAction
+            #screenpoint.assign_to(action_observer_camera_move.world_pos)
+            #self.controller.act(sc_pb.ActionObserverCameraMove(world_pos=screenpoint))
+            #sc_pb.RequestObserverAction(actions=[sc_pb.ObserverAction(player_perspective=sc_pb.ActionObserverPlayerPerspective(player_id=2))])
+            #obsAction = self.controller.act(sc_pb.RequestObserverAction(actions=[sc_pb.ObserverAction(player_perspective=sc_pb.ActionObserverPlayerPerspective(player_id=2))]))#   [sc_pb.ActionObserverCameraMove(distance=50)]))
+            #screenpoint.assign_to(obsAction.camera_move.world_pos)
+            #remote_controller.RemoteController.actions
             if obs.player_result: # Episide over.
                 self._state = StepType.LAST
                 discount = 0
@@ -100,7 +126,7 @@ class ReplayEnv:
             step = TimeStep(step_type=self._state, reward=0,
                             discount=discount, observation=agent_obs)
 
-            self.agent.step(step, obs.actions, self.info)
+            #self.agent.step(step, obs.actions, self.info)
 
             if obs.player_result:
                 break

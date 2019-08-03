@@ -69,33 +69,43 @@ class MoveToBeacon(base_agent.BaseAgent):
     def loadK(self, path):
         self.model = ks.models.load_model(path)
 
+    def stencil(self, _stencil, _raw_list):
+        input = _raw_list
+        stencil = _stencil
+        newInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
+        counterx = 0
+        countery = 0
+        for numy, y in enumerate(stencil):
+            for numx, x in enumerate(y): 
+                if (x != 0):
+                    newInput[countery][counterx] = input[numy][numx]
+                    counterx+=1
+                if (counterx == const.InputSize()):
+                    countery+=1
+                    counterx=0
+        return newInput
+
     def step(self, obs):
         super(MoveToBeacon, self).step(obs)
 
         if MoveToBeacon.loaded == False:
             self.loadK("8Dense-10-epochs-2-batches-3000-dataSetSize-98%")
             MoveToBeacon.loaded = True
-
-
+        input = obs.observation.feature_minimap[5]
+        for x in input:
+                output = ""
+                for i in x:
+                    output+=str(i)
+                    output+=""
+                print(output)
+        print("\n")        
         #If maring is selected, use DNN
         #print("Single: " + (str)(len(obs.observation.single_select)))
         #print("Multi: " + (str)(len(obs.observation.multi_select)))
         if self.unit_type_is_selected(obs, units.Terran.Marine):
             if self.can_do(obs, actions.FUNCTIONS.Attack_screen.id):
 
-                input = obs.observation.feature_minimap[5]
-                stencil = obs.observation.feature_minimap[3]
-                newInput = numpy.zeros((const.InputSize(),const.InputSize()),int)
-                counterx = 0
-                countery = 0
-                for numy, y in enumerate(stencil):
-                    for numx, x in enumerate(y): 
-                        if (x == 1):
-                            newInput[countery][counterx] = input[numy][numx]
-                            counterx+=1
-                        if (counterx == const.InputSize()):
-                            countery+=1
-                            counterx=0
+                newInput = self.stencil(obs.observation.feature_minimap[3], obs.observation.feature_minimap[5])
 
                 #for x in stencil:
                 #        output = ""
@@ -118,11 +128,6 @@ class MoveToBeacon(base_agent.BaseAgent):
                 #            output+=" "
                 #        print(output)
                 #print("\n")
-
-
-                for unit in obs.observation.feature_units:
-                    if(unit.unit_type == 317):
-                        beacon = unit
 
                 newInput = numpy.expand_dims(newInput, axis=2)
                 newInput = newInput.reshape([-1,const.InputSize(),const.InputSize(),1])
