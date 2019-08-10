@@ -6,18 +6,28 @@ import math
 
 from pysc2.lib import actions as sc_action
 from pysc2.lib import static_data
-from pysc2.agents import base_agent 
+from pysc2.agents import base_agent
+from Constants import const
 
 class ObserverAgent(base_agent.BaseAgent):
+    #Camera offset
+    cy_cx = [0,0]
 
     def __init__(self):
         self.states = []
         self.count = 0;
 
-    def stencil(self, _stencil, _raw_list, _new_size):
+    def calculate_offset(self, height_map): 
+        for numy, y in enumerate(height_map):
+            for numx, x in enumerate(y): 
+                if (x != 0):
+                    self.cy_cx = [numy, numx]
+                    return
+
+    def stencil(self, _stencil, _raw_list, _new_width, _new_height):
         input = _raw_list
         stencil = _stencil
-        newInput = np.zeros((_new_size,_new_size),int)
+        newInput = np.zeros((_new_height,_new_width),int)
         counterx = 0
         countery = 0
         for numy, y in enumerate(stencil):
@@ -25,7 +35,7 @@ class ObserverAgent(base_agent.BaseAgent):
                 if (x != 0):
                     newInput[countery][counterx] = input[numy][numx]
                     counterx+=1
-                if (counterx == _new_size):
+                if (counterx == _new_width):
                     countery+=1
                     counterx=0
         return newInput
@@ -36,7 +46,7 @@ class ObserverAgent(base_agent.BaseAgent):
         #self.count += 1
 
     
-
+        
 
         #state = {}
 
@@ -51,11 +61,11 @@ class ObserverAgent(base_agent.BaseAgent):
         #    time_step.observation["feature_minimap"][6]                         # selected
         #]
         height_map = time_step.observation.feature_screen[0]
-
+        #self.calculate_offset(height_map)
         #Remove all Zero lines 
-        #height_map = height_map[~np.all(height_map == 0, axis=1)]
+        height_map = height_map[~np.all(height_map == 0, axis=1)]
         #Remove all Zeros in remaining lines
-        #height_map = [x[x != 0] for x in height_map]
+        height_map = [x[x != 0] for x in height_map]
 
         height = 0
         width = 0
@@ -64,26 +74,38 @@ class ObserverAgent(base_agent.BaseAgent):
             width = 0
             for i in x:
                 output+=str(i)
-                output+=" "
+                output+=""
                 width += 1
-            print(output)
+            #print(output)
             height += 1
-        print("\n")   
+        #print("\n")   
 
         print("width: ")
         print(width)
         print("height: ")
         print(height)
         print("\n")
-        #unit_type = self.stencil(time_step.observation.feature_screen[0], time_step.observation.feature_screen[6], width)
-        return sc_action.FUNCTIONS.move_camera([42,42])
+        return 
+        #unit_type = self.stencil(time_step.observation.feature_screen[0], time_step.observation.feature_screen[6], width, height)  
+     
+        #height = 0
+        #width = 0
         #for x in unit_type:
         #    output = ""
+        #    width = 0
         #    for i in x:
         #        output+=str(i)
-        #        output+=""
-        #    print(output)
-        #print("\n")   
+        #        output+=" "
+        #        width += 1
+        #    #print(output)
+        #    height += 1
+        ##print("\n") 
+        
+        #print("width unit: ")
+        #print(width)
+        #print("height unit: ")
+        #print(height)
+        #print("\n")  
 
         #unit_type_compressed = np.zeros(unit_type.shape, dtype=np.float)
         #for y in range(len(unit_type)):
@@ -139,6 +161,6 @@ class ObserverAgent(base_agent.BaseAgent):
 class NothingAgent(base_agent.BaseAgent):
     def step(self, obs):
         #print(obs.observation.available_actions)
-        #if (['move_camera'] in obs.observation.available_actions):
-        return sc_action.FUNCTIONS.move_camera([42,42])
-       # return sc_action.FUNCTIONS.no_op()
+        if (1 in obs.observation.available_actions):
+            return sc_action.FUNCTIONS.move_camera([const.MiniMapSize()/2,const.MiniMapSize()/2])
+        return sc_action.FUNCTIONS.no_op()

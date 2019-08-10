@@ -9,18 +9,20 @@ from s2clientprotocol import sc2api_pb2 as sc_pb
 import importlib
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("replay", "D:\Games\StarCraft II\Replays\Test\EdgeCaseTesting.SC2Replay", "Path to a replay file.")
+flags.DEFINE_string("replay", "D:\Games\StarCraft II\Replays\Test\Me.SC2Replay", "Path to a replay file.")
 flags.DEFINE_string("agent", "ObserverAgent.ObserverAgent", "Path to an agent.")
 #flags.mark_flag_as_required("replay")
 #flags.mark_flag_as_required("agent")
 
 class ReplayEnv:
+    screen_size_px=(84, 84)
+    minimap_size_px=(84, 84)
+    map_size=(153,148)
+    camera_width = 300
     def __init__(self,
                  replay_file_path,
                  agent,
                  player_id=1,
-                 screen_size_px=(84, 84),
-                 minimap_size_px=(84, 84),
                  discount=1.,
                  step_mul=1):
 
@@ -40,13 +42,13 @@ class ReplayEnv:
         if not self._valid_replay(self.info, ping):
             raise Exception("{} is not a valid replay file!".format(replay_file_path))
 
-        screen_size_px = point.Point(*screen_size_px)
-        minimap_size_px = point.Point(*minimap_size_px)
+        _screen_size_px = point.Point(*self.screen_size_px)
+        _minimap_size_px = point.Point(*self.minimap_size_px)
         interface = sc_pb.InterfaceOptions(
             raw=False, score=True,
-            feature_layer=sc_pb.SpatialCameraSetup(width=24))
-        screen_size_px.assign_to(interface.feature_layer.resolution)
-        minimap_size_px.assign_to(interface.feature_layer.minimap_resolution)
+            feature_layer=sc_pb.SpatialCameraSetup(width=self.camera_width,crop_to_playable_area=True))
+        _screen_size_px.assign_to(interface.feature_layer.resolution)
+        _minimap_size_px.assign_to(interface.feature_layer.minimap_resolution)
 
         map_data = None
         if self.info.local_map_path:
@@ -59,7 +61,7 @@ class ReplayEnv:
             replay_data=replay_data,
             map_data=map_data,
             options=interface,
-            observed_player_id=0))
+            observed_player_id=player_id))
 
         self._state = StepType.FIRST
 
@@ -78,10 +80,57 @@ class ReplayEnv:
 #           # Low MMR = corrupt replay or player who is weak.
 #           return False
         return True
+    def select_point(self, args):
+        string = "[[" + str(format(args[0][0])) + "], "
+        string += "[" + str(args[1][0]) + ", "
+        string += str(args[1][1]) + "]]"
+        return string
+    def single_select_point(self, args):
+        string = "[[" + '0' + "], "
+        string += "[" + str(args[1][0]) + ", "
+        string += str(args[1][1]) + "]]"
+        return string
+    def double_select_point(self, args):
+        string = "[[" + '0' + "], "
+        string += "[" + str(args[1][0]) + ", "
+        string += str(args[1][1]) + "], "
+        string += "[" + str(args[1][0]) + ", "
+        string += str(args[1][1]) + "]]"
+        return string
+    def default(self, args):
+        return "Unknown"
+
+    def extract_args(self, id, args):
+        if not args: 
+            return "[]"
+        switch = {
+        #select point
+        '2': self.select_point,
+        #select rect 
+        '3': self.double_select_point,
+        #smart minimap 
+        '452': self.single_select_point,
+        #attack minimap 
+        '13': self.single_select_point, 
+        #smart screen 
+        '451': self.single_select_point,
+        #attack screen 
+        '12': self.single_select_point, 
+        '14': self.single_select_point,
+        #Inject
+        '204': self.single_select_point
+        #stop quick
+        #'453': self.none,
+        #select army 
+        #'7': self.none
+            }
+        func = switch.get(id, self.default)
+        return func(args)
 
     def start(self):
         _features = features.features_from_game_info(self.controller.game_info())
-        
+
+        _features.init_camera(features.Dimensions(self.screen_size_px,self.minimap_size_px), point.Point(*self.map_size), self.camera_width)
         while True:
             self.controller.step(self.step_mul)
             obs = self.controller.observe()
@@ -90,17 +139,33 @@ class ReplayEnv:
             except:
                 pass
             
-            screenpoint = (42, 42)
-            screenpoint = point.Point(*screenpoint)
+            #screenpoint = (42, 42)
+            #screenpoint = point.Point(*screenpoint)
+            if (len(obs.actions) == 0):
+                continue
 
+            white_list = {
+                '2', '3', '12', '13', '14', '452', '451', '204', '453', '7' }
+
+            
+            for action in obs.actions:
+                for num in white_list:
+                    if (format(_features.reverse_action(action).function) == num):
+                        print(_features.reverse_action(action).function)
+                        print(_features.reverse_action(action).arguments)
+                        print("{}: Parameters: {}".format(_features.reverse_action(action).function, 
+                                                  self.extract_args(format(_features.reverse_action(action).function), _features.reverse_action(action).arguments)))
+                        break
+            #else:
+            #    print(obs.actions)
 
             #if obs.observation.game_loop in config.actions:
                 #func = config.actions[o.game_loop](obs)
 
            #_features.reverse_action(obs.actions[1])
 
-            action = _features.transform_action(obs.observation, actions.FUNCTIONS.move_camera([42,42]))
-            self.controller.act(action)
+            #action = _features.transform_action(obs.observation, actions.FUNCTIONS.move_camera([42,42]))
+            #self.controller.act(action)
 
             #self.assertEqual(actions.FUNCTIONS.move_camera.id, func.function)
 
@@ -121,13 +186,18 @@ class ReplayEnv:
             else:
                 discount = self.discount
 
-            self._episode_steps += self.step_mul
+            #if (_features.reverse_action(obs.actions[0]).function == actions.FUNCTIONS.select_rect.id):
+            #agent_obs = _features.transform_obs(obs)
 
-            step = TimeStep(step_type=self._state, reward=0,
-                            discount=discount, observation=agent_obs)
+            #self._episode_steps += self.step_mul
 
-            #self.agent.step(step, obs.actions, self.info)
+            #step = TimeStep(step_type=self._state, reward=0,
+            #                discount=discount, observation=agent_obs)
 
+            #offset = self.agent.step(step, self.info)
+            #print(_features.reverse_action(obs.actions[0]))
+            #print ("+")
+            #print(offset)
             if obs.player_result:
                 break
 

@@ -11,6 +11,7 @@ from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D, LSTM, Re
 from keras.callbacks import TensorBoard
 from keras_transformer import get_model
 
+from pysc2.lib import features
 import numpy as np 
 import os 
 import csv
@@ -154,7 +155,15 @@ def build_LSTM():
     padding = 'same'
     activation = 'relu'
     model = Sequential()
-    model.add(Conv2D(64, kernel_size=(5, 5), input_shape=(const.InputSize(), const.InputSize(), 1),
+    input = [features.Dimensions.screen,
+             features.Dimensions.screen,
+             features.Dimensions.screen,
+             features.Dimensions.screen,
+             features.Dimensions.screen,
+             features.Dimensions.screen,
+             features.Dimensions.screen,
+             features.Dimensions.screen,]
+    model.add(Conv2D(64, kernel_size=(5, 5), input_shape=(input),
                     activation=activation))
     model.add(MaxPooling2D(pool_size=(2, 2), padding=padding))
     model.add(Dropout(0.3))
@@ -217,30 +226,34 @@ def build_net(input, info, num_action):
 
 def build_transformer():
 
-    td = get_training_data("training_data")
-    model = get_model(
-    token_num=(const.inputsize(), const.inputsize()),
-    embed_dim=1,
-    encoder_num=3,
-    decoder_num=2,
-    head_num=3,
-    hidden_dim=120,
-    attention_activation='relu',
-    feed_forward_activation='relu',
-    dropout_rate=0.05,
-    embed_weights=np.random.random((13, 30))
-    )
-    
-    
-    model.compile(optimizer='adam',
-    loss='sparse_categorical_crossentropy')
-    model.summary()
+    #TransformerBlock is a pseudo-layer combining together all nuts and bolts to assemble
+    #a complete section of both the Transformer and the Universal Transformer
+    #models, following description from the "Universal Transformers" paper.
+    #Each such block is, essentially:
+    #- Multi-head self-attention (masked or unmasked, with attention dropout,
+    #  but without input dropout)
+    #- Residual connection,
+    #- Dropout
+    #- Layer normalization
+    #- Transition function
+    #- Residual connection
+    #- Dropout
+    #- Layer normalization
 
-     #train the model
-    model.fit(
-        x=[np.asarray(encoder_inputs * 1000), np.asarray(decoder_inputs * 1000)],
-        y=np.asarray(decoder_outputs * 1000),
-        epochs=5)
+    transformer_block = TransformerBlock(
+        name='transformer',
+        num_heads=8,
+        residual_dropout=0.1,
+        attention_dropout=0.1,
+        use_masking=True)
+    add_coordinate_embedding = TransformerCoordinateEmbedding(
+        transformer_depth,
+        name='coordinate_embedding')
+    
+    output = transformer_input # shape: (<batch size>, <sequence length>, <input size>)
+    for step in range(transformer_depth):
+        output = transformer_block(
+            add_coordinate_embedding(output, step=step))
 
     return 0
 

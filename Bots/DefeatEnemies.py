@@ -60,8 +60,10 @@ class DefeatEnemies(base_agent.BaseAgent):
             if self.can_do(obs, actions.FUNCTIONS.Attack_screen.id):
 
                 #84x84 Detailed
+                #Things to be known:
+                #Height_map(0) visibility(1) creep(2) Player_relative(5) Unit_type(6) selected(7) hit_points(8) unit_density(11) 
                 input = obs.observation.feature_screen[6]
-
+                #features.Dimensions.screen
                 #31x31 Simplified
                 #input = obs.observation.feature_screen[5]
                 #stencil = obs.observation.feature_screen[3]
@@ -76,14 +78,14 @@ class DefeatEnemies(base_agent.BaseAgent):
                 #        if (counterx == const.InputSize()):
                 #            countery+=1
                 #            counterx=0
-
-                #for x in obs.observation.feature_screen[6]:
-                #        output = ""
-                #        for i in x:
-                #            output+=str(i)
-                #            output+=""
-                #        print(output)
-                #print("\n")
+                obs.observation
+                for x in obs.observation.feature_screen[6]:
+                        output = ""
+                        for i in x:
+                            output+=str(i)
+                            output+=""
+                        print(output)
+                print("\n")
 
                 newInput = numpy.expand_dims(input, axis=2)
                 newInput = newInput.reshape([-1,const.InputSize(),const.InputSize(),1])

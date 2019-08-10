@@ -19,6 +19,7 @@ from pysc2Replay.ObserverAgent import NothingAgent
 from pysc2.agents import base_agent
 from pysc2.env import sc2_env, run_loop
 from pysc2.lib import actions, features, units
+from Constants import const
 
 from absl import app
 
@@ -39,19 +40,19 @@ def main(unused_argv):
                          ], 
                 agent_interface_format=features.AgentInterfaceFormat(
                     #What resolution the player sees the world at 
-                    feature_dimensions=features.Dimensions(screen=84, minimap=84),
+                    feature_dimensions=features.Dimensions(screen=const.ScreenSize(), minimap=const.MiniMapSize()),
                     #More indepth unit information
                     use_feature_units=True,
                     #Increase camera size to encompass whole map
-                    camera_width_world_units=153),
+                    camera_width_world_units=const.WorldSize('x')*1.15),
                 #Steps default is 8 per frame (168APM) (16 = 1 second)
-                step_mul=1,#175
+                step_mul=10,#175
                 #Max steps per game (0 is infinite)
                 game_steps_per_episode=0,
                 #visualize pysc2 input layers 
                 visualize=True, 
                 #Play-back-time
-                realtime=True,
+                realtime=False,
                 #Fog of War
                 disable_fog=False
            ) as env:

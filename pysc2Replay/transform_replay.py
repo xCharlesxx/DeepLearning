@@ -27,12 +27,14 @@ flags.DEFINE_integer("start", 0, "Start at replay no.", lower_bound=0)
 flags.DEFINE_integer("batch", 1, "Size of replay batch for each process", lower_bound=1, upper_bound=512)
 
 class Parser:
+    screen_size_px=(84, 84)
+    minimap_size_px=(84, 84)
+    map_size=(153,148)
+    camera_width = 24
     def __init__(self,
                  replay_file_path,
                  agent,
-                 player_id=1,
-                 screen_size_px=(84, 84),
-                 minimap_size_px=(84, 84),
+                 player_id=2,
                  discount=1.):
                  #frames_per_game=1):
 
@@ -54,13 +56,13 @@ class Parser:
         if not self._valid_replay(self.info, ping):
             raise Exception("{} is not a valid replay file!".format(self.replay_file_name + '.SC2Replay'))
 
-        screen_size_px = point.Point(*screen_size_px)
-        minimap_size_px = point.Point(*minimap_size_px)
+        _screen_size_px = point.Point(*self.screen_size_px)
+        _minimap_size_px = point.Point(*self.minimap_size_px)
         interface = sc_pb.InterfaceOptions(
             raw=True, score=True,
-            feature_layer=sc_pb.SpatialCameraSetup(width=350,allow_cheating_layers=False,crop_to_playable_area=True),show_cloaked=True, raw_affects_selection=True,raw_crop_to_playable_area=True)
-        screen_size_px.assign_to(interface.feature_layer.resolution)
-        minimap_size_px.assign_to(interface.feature_layer.minimap_resolution)
+            feature_layer=sc_pb.SpatialCameraSetup(width=self.camera_width,crop_to_playable_area=True),show_cloaked=True, raw_affects_selection=True,raw_crop_to_playable_area=True)
+        _screen_size_px.assign_to(interface.feature_layer.resolution)
+        _minimap_size_px.assign_to(interface.feature_layer.minimap_resolution)
 
         map_data = None
         if self.info.local_map_path:
@@ -92,38 +94,113 @@ class Parser:
 #           # Low MMR = corrupt replay or player who is weak.
 #           return False
         return True
+    def select_point(self, args):
+        string = "[[" + str(format(args[0][0])) + "], "
+        string += "[" + str(args[1][0]) + ", "
+        string += str(args[1][1]) + "]]"
+        return string
+    def single_select_point(self, args):
+        string = "[[" + '0' + "], "
+        string += "[" + str(args[1][0]) + ", "
+        string += str(args[1][1]) + "]]"
+        return string
+    def double_select_point(self, args):
+        string = "[[" + '0' + "], "
+        string += "[" + str(args[1][0]) + ", "
+        string += str(args[1][1]) + "], "
+        string += "[" + str(args[1][0]) + ", "
+        string += str(args[1][1]) + "]]"
+        return string
+    def single_q(self, args):
+        return "[0]"
+    def default(self, args):
+        return "Unknown"
+
+    def extract_args(self, id, args):
+        if not args: 
+            return "[]"
+        switch = {
+        #select point
+        '2': self.select_point,
+        #select rect 
+        '3': self.double_select_point,
+        #smart minimap 
+        '452': self.single_select_point,
+        #attack minimap 
+        '13': self.single_select_point, 
+        #smart screen 
+        '451': self.single_select_point,
+        #attack screen 
+        '12': self.single_select_point, 
+        '14': self.single_select_point,
+        #Inject
+        '204': self.single_select_point,
+        #stop quick
+        '453': self.single_q,
+        #select army 
+        '7': self.single_q
+            }
+        func = switch.get(id, self.default)
+        return func(args)
+
 
     def start(self):
         print("Hello we are in Start")
-
-
-        step_mul = 50
-        _features = features.features_from_game_info(self.controller.game_info())
-        
+        step_mul = 1
+        _features = features.features_from_game_info(self.controller.game_info(), use_feature_units=True, use_camera_position=True)
+        #print("world_tl_to_world_camera_rel: {}\n\nworld_to_feature_screen_px: {}\n\nworld_to_world_tl: {}".format(_features._world_tl_to_world_camera_rel,
+        #                                                                              _features._world_to_feature_screen_px,
+        #                                                                              _features._world_to_world_tl))
+        _features.init_camera(features.Dimensions(self.screen_size_px,self.minimap_size_px), point.Point(*self.map_size), self.camera_width)
         while True:
             #Takes one step through the replay
             self.controller.step(step_mul)
             #Converts visual data into abstract data
             obs = self.controller.observe()
-            #if (len(obs.actions) != 0):
-                #print(obs.actions)
-            agent_obs = _features.transform_obs(obs)
 
             if obs.player_result: # Episide over.
                 self._state = StepType.LAST
                 discount = 0
             else:
-                discount = self.discount
+                discount = self.discount  
+                
+            if (len(obs.actions) == 0):
+                continue
 
-            self._episode_steps += step_mul
+            white_list = {
+                '2', '3', '12', '13', '14', '452', '451', '204', '453', '7' }
 
-            step = TimeStep(step_type=self._state, reward=0,
-                            discount=discount, observation=agent_obs)
+            
+            for action in obs.actions:
+                for num in white_list:
+                    if (format(_features.reverse_action(action).function) == num):
+                        print(_features.reverse_action(action).function)
+                        print("{}: Parameters: {}".format(_features.reverse_action(action).function, 
+                                                  self.extract_args(format(_features.reverse_action(action).function), _features.reverse_action(action).arguments)))
+                        break
 
-            self.agent.step(step, self.info)
-            screenpoint = (84, 84)
-            screenpoint = point.Point(*screenpoint)
+            #print("\n")
+            #else:
+            #    print(obs.actions)
+            #_features.init_camera(features.Dimensions(self.screen_size_px,self.minimap_size_px), point.Point(*self.map_size), self.camera_width)
+            #print("world_tl_to_world_camera_rel: {}\n\nworld_to_world_tl: {}".format(_features._world_tl_to_world_camera_rel,
+            #                                                                         _features._world_to_world_tl))
 
+            #if (_features.reverse_action(obs.actions[0]).function == actions.FUNCTIONS.Smart_screen.id):
+            #    agent_obs = _features.transform_obs(obs)
+            #    #self._episode_steps += step_mul
+            #    step = TimeStep(step_type=self._state, reward=0,
+            #                    discount=discount, observation=agent_obs)
+            #    #print(step.observation.camera_position)
+            #    print("Camera Pos: x: {}  y: {}".format(step.observation.camera_position[0],step.observation.camera_position[1]))
+            #    print("Screen Pos: x: {}  y: {}\n".format(_features.reverse_action(obs.actions[0]).arguments[1][0],_features.reverse_action(obs.actions[0]).arguments[1][1]))
+            #    self.agent.step(step, self.info)
+            #print(_features.reverse_action(obs.actions[0]))
+            #print ("+")
+            #print(offset)
+            #screenpoint = (84, 84)
+            #screenpoint = point.Point(*screenpoint)
+            
             #self.controller.actions(sc_pb.RequestAction(actions=[actions.FUNCTIONS.move_camera(screenpoint)]))
             if obs.player_result:
                 break
