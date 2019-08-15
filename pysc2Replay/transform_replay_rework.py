@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 
-from pysc2.lib import features, point, remote_controller, actions
+from pysc2.lib import features, point, remote_controller, actions, sc_process
 from absl import app, flags
 from pysc2.env.environment import TimeStep, StepType
 from pysc2 import run_configs
+from pysc2.run_configs import lib
 from s2clientprotocol import common_pb2
 from s2clientprotocol import sc2api_pb2 as sc_pb
+from s2clientprotocol.sc2api_pb2 import RequestReplayInfo
 import importlib
 
+
 FLAGS = flags.FLAGS
-flags.DEFINE_string("replay", "D:\Games\StarCraft II\Replays\Test\Me.SC2Replay", "Path to a replay file.")
+flags.DEFINE_string("replay", "D:\\Games\\StarCraft II\\Replays\\Test\\up2date.SC2Replay", "Path to a replay file.")
 flags.DEFINE_string("agent", "ObserverAgent.ObserverAgent", "Path to an agent.")
 #flags.mark_flag_as_required("replay")
 #flags.mark_flag_as_required("agent")
@@ -31,13 +34,15 @@ class ReplayEnv:
         self.agent = agent
         self.discount = discount
         self.step_mul = step_mul
-
+        #lib.version_dict
         self.run_config = run_configs.get()
+        #self.run_config.lib. 
         self.sc2_proc = self.run_config.start()
         self.controller = self.sc2_proc.controller
-
+        #self.sc2_proc.version = sc_pb.RequestReplayInfo.download_data
         replay_data = self.run_config.replay_data(replay_file_path)
         ping = self.controller.ping()
+        #sc_process.
         self.info = self.controller.replay_info(replay_data)
         if not self._valid_replay(self.info, ping):
             raise Exception("{} is not a valid replay file!".format(replay_file_path))
@@ -80,52 +85,6 @@ class ReplayEnv:
 #           # Low MMR = corrupt replay or player who is weak.
 #           return False
         return True
-    def select_point(self, args):
-        string = "[[" + str(format(args[0][0])) + "], "
-        string += "[" + str(args[1][0]) + ", "
-        string += str(args[1][1]) + "]]"
-        return string
-    def single_select_point(self, args):
-        string = "[[" + '0' + "], "
-        string += "[" + str(args[1][0]) + ", "
-        string += str(args[1][1]) + "]]"
-        return string
-    def double_select_point(self, args):
-        string = "[[" + '0' + "], "
-        string += "[" + str(args[1][0]) + ", "
-        string += str(args[1][1]) + "], "
-        string += "[" + str(args[1][0]) + ", "
-        string += str(args[1][1]) + "]]"
-        return string
-    def default(self, args):
-        return "Unknown"
-
-    def extract_args(self, id, args):
-        if not args: 
-            return "[]"
-        switch = {
-        #select point
-        '2': self.select_point,
-        #select rect 
-        '3': self.double_select_point,
-        #smart minimap 
-        '452': self.single_select_point,
-        #attack minimap 
-        '13': self.single_select_point, 
-        #smart screen 
-        '451': self.single_select_point,
-        #attack screen 
-        '12': self.single_select_point, 
-        '14': self.single_select_point,
-        #Inject
-        '204': self.single_select_point
-        #stop quick
-        #'453': self.none,
-        #select army 
-        #'7': self.none
-            }
-        func = switch.get(id, self.default)
-        return func(args)
 
     def start(self):
         _features = features.features_from_game_info(self.controller.game_info())
@@ -143,19 +102,6 @@ class ReplayEnv:
             #screenpoint = point.Point(*screenpoint)
             if (len(obs.actions) == 0):
                 continue
-
-            white_list = {
-                '2', '3', '12', '13', '14', '452', '451', '204', '453', '7' }
-
-            
-            for action in obs.actions:
-                for num in white_list:
-                    if (format(_features.reverse_action(action).function) == num):
-                        print(_features.reverse_action(action).function)
-                        print(_features.reverse_action(action).arguments)
-                        print("{}: Parameters: {}".format(_features.reverse_action(action).function, 
-                                                  self.extract_args(format(_features.reverse_action(action).function), _features.reverse_action(action).arguments)))
-                        break
             #else:
             #    print(obs.actions)
 
@@ -187,13 +133,21 @@ class ReplayEnv:
                 discount = self.discount
 
             #if (_features.reverse_action(obs.actions[0]).function == actions.FUNCTIONS.select_rect.id):
-            #agent_obs = _features.transform_obs(obs)
+            agent_obs = _features.transform_obs(obs)
 
             #self._episode_steps += self.step_mul
 
-            #step = TimeStep(step_type=self._state, reward=0,
-            #                discount=discount, observation=agent_obs)
+            step = TimeStep(step_type=self._state, reward=0,
+                            discount=discount, observation=agent_obs)
+            acts = []
+            for action in obs.actions:
+                for num in self.agent.unit_dict.keys():
+                    if (format(_features.reverse_action(action).function) == num):
+                        acts.append(_features.reverse_action(action))
+                        break
 
+            data = self.controller.data()
+            self.agent.step(step, self.info, acts)
             #offset = self.agent.step(step, self.info)
             #print(_features.reverse_action(obs.actions[0]))
             #print ("+")

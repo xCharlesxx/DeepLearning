@@ -47,6 +47,7 @@ class Parser:
         #self.frames_per_game = frames_per_game
 
         self.run_config = run_configs.get()
+        print("Could run_configs.get")
         self.sc2_proc = self.run_config.start()
         self.controller = self.sc2_proc.controller
 
@@ -82,10 +83,17 @@ class Parser:
     @staticmethod
     def _valid_replay(info, ping):
         """Make sure the replay isn't corrupt, and is worth looking at."""
-        if (info.HasField("error") or
-                    info.base_build != ping.base_build or  # different game version
-                    info.game_duration_loops < 10 or
-                    len(info.player_info) != 2):
+        if (info.HasField("error")):
+            print("Replay has field: Error")
+            return False
+        if (info.base_build != ping.base_build): # different game version
+           print("Build Mismatch:\nBase: {}\nReplay: {}".format(ping.base_build, info.base_build))
+           return False 
+        if (info.game_duration_loops < 10):
+            print("Replay not long enough, loops: {}".format(info.game_duration_loops))
+            return False
+        if (len(info.player_info) != 2):
+            print("Replay: Possible corruption")
             # Probably corrupt, or just not interesting.
             return False
 #   for p in info.player_info:
@@ -122,16 +130,12 @@ class Parser:
                 continue
 
             agent_obs = _features.transform_obs(obs)
-            #self._episode_steps += step_mul
             step = TimeStep(step_type=self._state, reward=0,
                             discount=discount, observation=agent_obs)
-                #print(step.observation.camera_position)
-                #print("Camera Pos: x: {}  y: {}".format(step.observation.camera_position[0],step.observation.camera_position[1]))
-                #print("Screen Pos: x: {}  y: {}\n".format(_features.reverse_action(obs.actions[0]).arguments[1][0],_features.reverse_action(obs.actions[0]).arguments[1][1]))
 
             acts = []
             for action in obs.actions:
-                for num in self.agent.unit_dict.keys():
+                for num in self.agent.action_dict.keys():
                     if (format(_features.reverse_action(action).function) == num):
                         acts.append(_features.reverse_action(action))
                         break

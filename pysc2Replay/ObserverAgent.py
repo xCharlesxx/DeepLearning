@@ -8,15 +8,16 @@ from pysc2.lib import actions as sc_action
 from pysc2.lib import static_data
 from pysc2.agents import base_agent
 from Constants import const
+from Translator import Translator
 
 class ObserverAgent(base_agent.BaseAgent):
     #Camera offset
     cy_cx = [0,0]
-    unit_dict = {}
+    action_dict = {}
     def __init__(self):
         self.states = []
         self.count = 0;
-        self.unit_dict = {
+        self.action_dict = {
                 #select point
                 '2': self.select_point,
                 #select rect 
@@ -127,126 +128,74 @@ class ObserverAgent(base_agent.BaseAgent):
         if (int(id) > 117 and int(id) < 140):
             id = '117'
 
-        func = self.unit_dict.get(id, self.default)
+        func = self.action_dict.get(id, self.default)
         return func(args)
 
 
     def step(self, time_step, info, acts):
 
-        #print(self.count, end='\r')
-        #self.count += 1
         state = {}
         for action in acts:
-            state["Actions:"] += self.extract_args(format(action.function), action.arguments)
+            state["actions"] += [self.extract_args(format(action.function), action.arguments)]
             break
         
+        height_map = time_step.observation.feature_screen[0]
+        #Remove all Zero lines 
+        height_map = height_map[~np.all(height_map == 0, axis=1)]
+        #Remove all Zeros in remaining lines
+        height_map = [x[x != 0] for x in height_map]
 
-
-
-        #state["minimap"] = [
-        #    time_step.observation["feature_minimap"][0] / 255,                  # height_map
-        #    time_step.observation["feature_minimap"][1] / 2,                    # visibility
-        #    time_step.observation["feature_minimap"][2],                        # creep
-        #    time_step.observation["feature_minimap"][3],                        # camera
-        #    (time_step.observation["feature_minimap"][5] == 1).astype(int),     # own_units
-        #    (time_step.observation["feature_minimap"][5] == 3).astype(int),     # neutral_units
-        #    (time_step.observation["feature_minimap"][5] == 4).astype(int),     # enemy_units
-        #    time_step.observation["feature_minimap"][6]                         # selected
-        #]
-        #height_map = time_step.observation.feature_screen[0]
-        ##self.calculate_offset(height_map)
-        ##Remove all Zero lines 
-        #height_map = height_map[~np.all(height_map == 0, axis=1)]
-        ##Remove all Zeros in remaining lines
-        #height_map = [x[x != 0] for x in height_map]
-
-        #height = 0
-        #width = 0
-        #for x in height_map:
-        #    output = ""
-        #    width = 0
-        #    for i in x:
-        #        output+=str(i)
-        #        output+=""
-        #        width += 1
-        #    #print(output)
-        #    height += 1
-        ##print("\n")   
+        height = 0
+        width = 0
+        for x in height_map:
+            output = ""
+            width = 0
+            for i in x:
+                output+=str(i)
+                output+=""
+                width += 1
+            #print(output)
+            height += 1
+        #print("\n")   
 
         #print("width: ")
         #print(width)
         #print("height: ")
         #print(height)
         #print("\n")
-        #return 
-        #unit_type = self.stencil(time_step.observation.feature_screen[0], time_step.observation.feature_screen[6], width, height)  
-     
-        #height = 0
-        #width = 0
-        #for x in unit_type:
-        #    output = ""
-        #    width = 0
-        #    for i in x:
-        #        output+=str(i)
-        #        output+=" "
-        #        width += 1
-        #    #print(output)
-        #    height += 1
-        ##print("\n") 
+        #return
+        T = Translator()
         
-        #print("width unit: ")
-        #print(width)
-        #print("height unit: ")
-        #print(height)
-        #print("\n")  
+        tFeatureLayers = T.translate_feature_layers(T.crop_feature_layers(time_step.observation.feature_screen[0],
+                                                                         time_step.observation.feature_screen,
+                                                                        width, height))
 
-        #unit_type_compressed = np.zeros(unit_type.shape, dtype=np.float)
-        #for y in range(len(unit_type)):
-        #    for x in range(len(unit_type[y])):
-        #        if unit_type[y][x] > 0 and unit_type[y][x] in static_data.UNIT_TYPES:
-        #            unit_type_compressed[y][x] = static_data.UNIT_TYPES.index(unit_type[y][x]) / len(static_data.UNIT_TYPES)
-
-        #for x in unit_type_compressed:
-        #    output = ""
-        #    for i in x:
-        #        output+=str(i)
-        #        output+=""
-        #    print(output)
-        #print("\n")  
-        #hit_points = time_step.observation["feature_screen"][8]
-        #hit_points_logged = np.zeros(hit_points.shape, dtype=np.float)
-        #for y in range(len(hit_points)):
-        #    for x in range(len(hit_points[y])):
-        #        if hit_points[y][x] > 0:
-        #            hit_points_logged[y][x] = math.log(hit_points[y][x]) / 4
-
-        #state["screen"] = [
-        #    time_step.observation["feature_screen"][0] / 255,               # height_map
-        #    time_step.observation["feature_screen"][1] / 2,                 # visibility
-        #    time_step.observation["feature_screen"][2],                     # creep
-        #    time_step.observation["feature_screen"][3],                     # power
-        #    (time_step.observation["feature_screen"][5] == 1).astype(int),  # own_units
-        #    (time_step.observation["feature_screen"][5] == 3).astype(int),  # neutral_units
-        #    (time_step.observation["feature_screen"][5] == 4).astype(int),  # enemy_units
-        #    unit_type_compressed,                                   # unit_type
-        #    time_step.observation["feature_screen"][7],                     # selected
-        #    hit_points_logged,                                      # hit_points
-        #    time_step.observation["feature_screen"][9] / 255,               # energy
-        #    time_step.observation["feature_screen"][10] / 255,              # shields
-        #    time_step.observation["feature_screen"][11]                     # unit_density
-        #]
-
-
-
-        ## Binary encoding of available actions
-        #'''
-        #state["game_loop"] = time_step.observation["game_loop"]
-        #state["player"] = time_step.observation["player"]
+        #for y in tFeatureLayers:
+        #    for x in y:
+        #        output = ""
+        #        for i in x:
+        #            output+=str(i)
+        #        print(output)
+        #    print("\n") 
         
-        #state["available_actions"] = np.zeros(len(sc_action.FUNCTIONS))
-        #for i in time_step.observation["available_actions"]:
-        #    state["available_actions"][i] = 1.0
-        #'''
+
+    #[0 "height_map", 
+    # 1 "visibility_map", 
+    # 2 "creep", 
+    # 3 "power", 
+    # 4 "player_id",
+    # 5 "player_relative", 
+    # 6 "unit_type", 
+    # 7 "selected", 
+    # 8 "unit_hit_points",
+    # 9 "unit_hit_points_ratio", 
+    # 10"unit_energy", 
+    # 11"unit_energy_ratio", 
+    # 12"unit_shields",
+    # 13"unit_shields_ratio", 
+    # 14"unit_density", 
+    # 15"unit_density_aa", 
+    # 16"effects"]
 
         self.states.append(state)
 
